@@ -1,0 +1,17 @@
+{
+  "name": "finance",
+  "version": "1.0.0",
+  "description": "Personal finance dashboard skeleton with Electron and native modules",
+  "main": "src/main/main.js",
+  "scripts": {
+    "build:native": "node scripts/build-native.js",
+    "start": "npm run build:native && node scripts/start-electron.js",
+    "test": "echo \"No tests configured yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^41.0.3"
+  }
+}
