@@ -9,6 +9,7 @@
   --muted: #8ea2bd;
   --accent: #7dd3fc;
   --accent-soft: rgba(125, 211, 252, 0.14);
+  --warning: rgba(251, 191, 36, 0.16);
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
   --radius: 18px;
 }
@@ -56,7 +57,9 @@ body {
 .topbar h1,
 .panel-header h2,
 .module-card h3,
-.metric-card strong {
+.metric-card strong,
+.event-grid strong,
+.source-card strong {
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
 }
 
@@ -166,7 +169,10 @@ body {
   gap: 18px;
 }
 
-.panel-header {
+.panel-header,
+.chart-header,
+.event-card-head,
+.chart-legend {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -187,14 +193,19 @@ body {
 }
 
 .nav-list,
-.signal-list {
+.signal-list,
+.log-stream,
+.event-stack {
   display: grid;
   gap: 10px;
 }
 
 .nav-item,
 .signal-item,
-.log-entry {
+.log-entry,
+.event-card,
+.source-card,
+.status-note {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -216,10 +227,15 @@ body {
     rgba(15, 23, 42, 0.42);
 }
 
-.metric-grid {
+.metric-grid,
+.event-grid,
+.source-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metric-card {
@@ -229,10 +245,15 @@ body {
   background: rgba(8, 19, 33, 0.72);
 }
 
-.metric-card span {
+.metric-card span,
+.event-label,
+.source-card span {
   display: block;
   color: var(--muted);
   margin-bottom: 10px;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .metric-card strong {
@@ -266,9 +287,98 @@ body {
   animation: sweep 5s linear infinite;
 }
 
-.log-actions {
-  display: flex;
-  gap: 10px;
+.chart-shell {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(8, 19, 33, 0.68);
+}
+
+.chart-header {
+  margin-bottom: 14px;
+}
+
+.chart-legend {
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-dot-fed {
+  background: #7dd3fc;
+  box-shadow: 0 0 18px rgba(125, 211, 252, 0.55);
+}
+
+.legend-dot-ecb {
+  background: #34d399;
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.45);
+}
+
+.central-bank-chart {
+  min-height: 320px;
+  border-style: solid;
+  background:
+    radial-gradient(circle at top left, rgba(125, 211, 252, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(8, 19, 33, 0.58), rgba(3, 7, 18, 0.92));
+}
+
+.central-bank-chart::after {
+  display: none;
+}
+
+.chart-fallback,
+.empty-state {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.next-event-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(8, 19, 33, 0.76);
+}
+
+.bank-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bank-pill-fed {
+  background: rgba(125, 211, 252, 0.12);
+  color: #bdeaff;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+}
+
+.bank-pill-ecb {
+  background: rgba(52, 211, 153, 0.12);
+  color: #a7f3d0;
+  border: 1px solid rgba(52, 211, 153, 0.34);
+}
+
+.event-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.warning-note {
+  background: var(--warning);
+  border-color: rgba(251, 191, 36, 0.28);
 }
 
 .button {
@@ -285,10 +395,33 @@ body {
   background: rgba(125, 211, 252, 0.22);
 }
 
-.log-stream {
-  display: grid;
+.button-secondary {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.log-actions {
+  display: flex;
   gap: 10px;
-  overflow: auto;
+  flex-wrap: wrap;
+}
+
+.source-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.source-card {
+  color: var(--text);
+  text-decoration: none;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(8, 19, 33, 0.76);
+}
+
+.source-card:hover {
+  border-color: var(--line-strong);
+  background: rgba(15, 29, 48, 0.9);
 }
 
 .log-entry pre {
@@ -329,7 +462,16 @@ body {
     display: none;
   }
 
-  .metric-grid {
+  .metric-grid,
+  .event-grid,
+  .source-grid {
     grid-template-columns: 1fr;
+  }
+
+  .panel-header,
+  .chart-header,
+  .event-card-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
