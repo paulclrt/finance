@@ -8,17 +8,25 @@ function createLogEntry(title, body, meta) {
   `;
 }
 
+function playIcon() {
+  return `
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4 2.4v11.2L13 8 4 2.4Z"></path>
+    </svg>
+  `;
+}
+
 export function renderLogsModule(container) {
   container.innerHTML = `
     <div class="module-card">
       <div class="panel-header">
         <div>
           <p class="eyebrow">Logs</p>
-          <h2>Native Process Output</h2>
+          <h2>Native output</h2>
         </div>
-        <div class="log-actions">
-          <button class="button" type="button" data-action="run-native">Run C binary</button>
-        </div>
+        <button class="icon-button" type="button" data-action="run-native" aria-label="Run C binary" title="Run C binary">
+          ${playIcon()}
+        </button>
       </div>
       <div class="log-stream" data-log-stream></div>
     </div>

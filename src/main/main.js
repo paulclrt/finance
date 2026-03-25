@@ -61,7 +61,7 @@ function createMainWindow() {
     height: 960,
     minWidth: 980,
     minHeight: 700,
-    backgroundColor: "#08111f",
+    backgroundColor: "#f3f5f7",
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
       contextIsolation: true,

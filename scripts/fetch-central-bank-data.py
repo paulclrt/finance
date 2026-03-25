@@ -10,8 +10,10 @@ import urllib.request
 from pathlib import Path
 
 FED_CALENDAR_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+FED_RATES_URL = "https://www.federalreserve.gov/monetarypolicy/openmarket.htm?os=av"
 ECB_CALENDAR_URL = "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"
 ECB_PRESS_URL = "https://www.ecb.europa.eu/press/press_conference/html/index.en.html"
+ECB_RATES_URL = "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html"
 CACHE_TTL_SECONDS = 12 * 60 * 60
 USER_AGENT = "FinanceLabCentralBankFetcher/1.0 (+local desktop app)"
 
@@ -28,6 +30,21 @@ MONTH_TO_NUMBER = {
     "october": 10,
     "november": 11,
     "december": 12,
+}
+
+MONTH_ABBR_TO_NUMBER = {
+    "Jan.": 1,
+    "Feb.": 2,
+    "Mar.": 3,
+    "Apr.": 4,
+    "May.": 5,
+    "Jun.": 6,
+    "Jul.": 7,
+    "Aug.": 8,
+    "Sep.": 9,
+    "Oct.": 10,
+    "Nov.": 11,
+    "Dec.": 12,
 }
 
 
@@ -103,6 +120,22 @@ def load_cached_events(conn):
     ]
 
 
+def load_cached_ecb_rates(conn):
+    raw_history = get_metadata(conn, "ecb_rates_history")
+    raw_current = get_metadata(conn, "ecb_current_rates")
+    history = json.loads(raw_history) if raw_history else []
+    current = json.loads(raw_current) if raw_current else (history[-1] if history else None)
+    return history, current
+
+
+def load_cached_fed_rates(conn):
+    raw_history = get_metadata(conn, "fed_rates_history")
+    raw_current = get_metadata(conn, "fed_current_rates")
+    history = json.loads(raw_history) if raw_history else []
+    current = json.loads(raw_current) if raw_current else (history[-1] if history else None)
+    return history, current
+
+
 def store_events(conn, events, fetched_at):
     conn.execute("DELETE FROM events")
     conn.executemany(
@@ -124,6 +157,22 @@ def store_events(conn, events, fetched_at):
         ],
     )
     set_metadata(conn, "last_successful_refresh", fetched_at)
+    conn.commit()
+
+
+def store_ecb_rates(conn, history, fetched_at):
+    current = history[-1] if history else None
+    set_metadata(conn, "ecb_rates_history", json.dumps(history))
+    set_metadata(conn, "ecb_current_rates", json.dumps(current))
+    set_metadata(conn, "ecb_rates_last_successful_refresh", fetched_at)
+    conn.commit()
+
+
+def store_fed_rates(conn, history, fetched_at):
+    current = history[-1] if history else None
+    set_metadata(conn, "fed_rates_history", json.dumps(history))
+    set_metadata(conn, "fed_current_rates", json.dumps(current))
+    set_metadata(conn, "fed_rates_last_successful_refresh", fetched_at)
     conn.commit()
 
 
@@ -254,6 +303,110 @@ def parse_ecb_latest_press_event(document, year):
     }
 
 
+def parse_ecb_rate_history(document):
+    text = strip_to_text(document)
+    matches = re.finditer(
+        r"(?P<year>20\d{2})\s+(?P<day>\d{1,2})\s+(?P<month>[A-Z][a-z]{2}\.)\s+"
+        r"(?P<deposit>\d+\.\d+)\s+(?P<main>\d+\.\d+)\s+(?:-|\d+\.\d+)\s+(?P<marginal>\d+\.\d+)",
+        text,
+    )
+
+    history = []
+    seen_dates = set()
+    for match in matches:
+        month_name = match.group("month")
+        month = MONTH_ABBR_TO_NUMBER.get(month_name)
+        if not month:
+            continue
+
+        effective_date = dt.date(
+            int(match.group("year")),
+            month,
+            int(match.group("day")),
+        ).isoformat()
+        if effective_date in seen_dates:
+            continue
+
+        seen_dates.add(effective_date)
+        history.append(
+            {
+                "effectiveDate": effective_date,
+                "depositFacility": float(match.group("deposit")),
+                "mainRefinancingOperations": float(match.group("main")),
+                "marginalLendingFacility": float(match.group("marginal")),
+                "sourceUrl": ECB_RATES_URL,
+            }
+        )
+
+    history.sort(key=lambda item: item["effectiveDate"])
+    if len(history) < 3:
+        raise RuntimeError("Unable to parse ECB key interest rates from official source")
+
+    return history
+
+
+def parse_fed_rate_history(document):
+    text = strip_to_text(document)
+    history = []
+    seen_dates = set()
+    current_year = None
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    month_names = "|".join(name.capitalize() for name in MONTH_TO_NUMBER)
+
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+
+        if re.fullmatch(r"20\d{2}", line):
+            current_year = int(line)
+            index += 1
+            continue
+
+        if current_year is None:
+            index += 1
+            continue
+
+        match = re.fullmatch(rf"(?P<month>{month_names})\s+(?P<day>\d{{1,2}})(?:\s+\*)?", line)
+        if not match:
+            index += 1
+            continue
+
+        if index + 3 >= len(lines):
+            break
+
+        month = MONTH_TO_NUMBER.get(match.group("month").lower())
+        level = lines[index + 3]
+        level_match = re.fullmatch(r"(?P<low>\d+(?:\.\d+)?)(?:-(?P<high>\d+(?:\.\d+)?))?", level)
+        if not month or not level_match:
+            index += 1
+            continue
+
+        effective_date = dt.date(current_year, month, int(match.group("day"))).isoformat()
+        if effective_date in seen_dates:
+            index += 4
+            continue
+
+        lower = float(level_match.group("low"))
+        upper = float(level_match.group("high") or level_match.group("low"))
+        history.append(
+            {
+                "effectiveDate": effective_date,
+                "targetLowerBound": lower,
+                "targetUpperBound": upper,
+                "targetMidpoint": round((lower + upper) / 2, 4),
+                "sourceUrl": FED_RATES_URL,
+            }
+        )
+        seen_dates.add(effective_date)
+        index += 4
+
+    history.sort(key=lambda item: item["effectiveDate"])
+    if len(history) < 3:
+        raise RuntimeError("Unable to parse Fed target range history from official source")
+
+    return history
+
+
 def fetch_central_bank_events(year):
     fed_html = fetch_html(FED_CALENDAR_URL)
     ecb_calendar_html = fetch_html(ECB_CALENDAR_URL)
@@ -275,6 +428,16 @@ def fetch_central_bank_events(year):
     return events
 
 
+def fetch_ecb_rate_history():
+    rates_html = fetch_html(ECB_RATES_URL)
+    return parse_ecb_rate_history(rates_html)
+
+
+def fetch_fed_rate_history():
+    rates_html = fetch_html(FED_RATES_URL)
+    return parse_fed_rate_history(rates_html)
+
+
 def write_payload(payload):
     json.dump(payload, sys.stdout)
 
@@ -287,11 +450,17 @@ def main():
     with sqlite3.connect(db_path) as conn:
         ensure_schema(conn)
         cached_events = load_cached_events(conn)
+        cached_ecb_rates_history, cached_current_ecb_rates = load_cached_ecb_rates(conn)
+        cached_fed_rates_history, cached_current_fed_rates = load_cached_fed_rates(conn)
 
-        if cached_events and cache_is_fresh(conn) and not args.refresh:
+        if cached_events and cached_ecb_rates_history and cached_fed_rates_history and cache_is_fresh(conn) and not args.refresh:
             write_payload(
                 {
                     "events": cached_events,
+                    "ecbRatesHistory": cached_ecb_rates_history,
+                    "currentEcbRates": cached_current_ecb_rates,
+                    "fedRatesHistory": cached_fed_rates_history,
+                    "currentFedRates": cached_current_fed_rates,
                     "dbPath": str(db_path),
                     "servedFrom": "cache",
                     "generatedAt": utc_now_iso(),
@@ -305,11 +474,19 @@ def main():
         try:
             fetched_at = utc_now_iso()
             fresh_events = fetch_central_bank_events(current_year)
+            fresh_ecb_rates_history = fetch_ecb_rate_history()
+            fresh_fed_rates_history = fetch_fed_rate_history()
             normalized_events = [dict(event, fetchedAt=fetched_at) for event in fresh_events]
             store_events(conn, normalized_events, fetched_at)
+            store_ecb_rates(conn, fresh_ecb_rates_history, fetched_at)
+            store_fed_rates(conn, fresh_fed_rates_history, fetched_at)
             write_payload(
                 {
                     "events": normalized_events,
+                    "ecbRatesHistory": fresh_ecb_rates_history,
+                    "currentEcbRates": fresh_ecb_rates_history[-1] if fresh_ecb_rates_history else None,
+                    "fedRatesHistory": fresh_fed_rates_history,
+                    "currentFedRates": fresh_fed_rates_history[-1] if fresh_fed_rates_history else None,
                     "dbPath": str(db_path),
                     "servedFrom": "network",
                     "generatedAt": utc_now_iso(),
@@ -318,10 +495,14 @@ def main():
                 }
             )
         except Exception as error:
-            if cached_events:
+            if cached_events or cached_ecb_rates_history or cached_fed_rates_history:
                 write_payload(
                     {
                         "events": cached_events,
+                        "ecbRatesHistory": cached_ecb_rates_history,
+                        "currentEcbRates": cached_current_ecb_rates,
+                        "fedRatesHistory": cached_fed_rates_history,
+                        "currentFedRates": cached_current_fed_rates,
                         "dbPath": str(db_path),
                         "servedFrom": "stale-cache",
                         "generatedAt": utc_now_iso(),
