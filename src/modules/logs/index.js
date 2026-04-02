@@ -1,3 +1,5 @@
+import { renderIcon } from "../../renderer/icons.js";
+
 function createLogEntry(title, body, meta) {
   return `
     <article class="log-entry">
@@ -5,14 +7,6 @@ function createLogEntry(title, body, meta) {
       <p class="log-meta">${meta}</p>
       <pre>${body}</pre>
     </article>
-  `;
-}
-
-function playIcon() {
-  return `
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M4 2.4v11.2L13 8 4 2.4Z"></path>
-    </svg>
   `;
 }
 
@@ -25,7 +19,7 @@ export function renderLogsModule(container) {
           <h2>Native output</h2>
         </div>
         <button class="icon-button" type="button" data-action="run-native" aria-label="Run C binary" title="Run C binary">
-          ${playIcon()}
+          ${renderIcon("play")}
         </button>
       </div>
       <div class="log-stream" data-log-stream></div>
