@@ -1,6 +1,6 @@
 const path = require("node:path");
 const fs = require("node:fs");
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage } = require("electron");
 const { spawn } = require("node:child_process");
 
 app.commandLine.appendSwitch("no-sandbox");
@@ -20,6 +20,10 @@ function resolvePythonLaunch() {
 
 function resolveCentralBankDbPath() {
   return path.join(app.getPath("userData"), "data", "central-bank-events.sqlite3");
+}
+
+function resolveCredentialsDbPath() {
+  return path.join(app.getPath("userData"), "data", "credentials.sqlite3");
 }
 
 function runProcess(command, args, cwd) {
@@ -55,6 +59,71 @@ function runProcess(command, args, cwd) {
   });
 }
 
+async function runCredentialsStore(args) {
+  const { command, prefixArgs } = resolvePythonLaunch();
+  const scriptPath = path.join(app.getAppPath(), "scripts", "credentials-store.py");
+  return runProcess(command, [...prefixArgs, scriptPath, ...args], app.getAppPath());
+}
+
+function encryptField(value) {
+  if (!value) {
+    return "";
+  }
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Secure storage is not available on this system.");
+  }
+  return safeStorage.encryptString(value).toString("base64");
+}
+
+function decryptField(value) {
+  if (!value) {
+    return "";
+  }
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error("Secure storage is not available on this system.");
+  }
+  return safeStorage.decryptString(Buffer.from(value, "base64"));
+}
+
+function buildAppMenu(mainWindow) {
+  const template = [];
+
+  if (process.platform === "darwin") {
+    template.push({ role: "appMenu" });
+  }
+
+  template.push({
+    label: "Settings",
+    submenu: [
+      {
+        label: "Credentials",
+        accelerator: "CmdOrCtrl+,",
+        click: () => {
+          mainWindow.webContents.send("ui:open-credentials");
+        },
+      },
+    ],
+  });
+
+  template.push({
+    label: "View",
+    submenu: [
+      { role: "reload" },
+      { role: "forceReload" },
+      { role: "toggleDevTools" },
+    ],
+  });
+
+  if (process.platform !== "darwin") {
+    template.push({
+      label: "File",
+      submenu: [{ role: "quit" }],
+    });
+  }
+
+  return Menu.buildFromTemplate(template);
+}
+
 function createMainWindow() {
   const window = new BrowserWindow({
     width: 1440,
@@ -62,6 +131,7 @@ function createMainWindow() {
     minWidth: 980,
     minHeight: 700,
     backgroundColor: "#f3f5f7",
+    autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
       contextIsolation: true,
@@ -70,6 +140,8 @@ function createMainWindow() {
   });
 
   window.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
+  Menu.setApplicationMenu(buildAppMenu(window));
+  return window;
 }
 
 ipcMain.handle("native:run-hello", async () => {
@@ -96,6 +168,91 @@ ipcMain.handle("data:get-central-bank-events", async (_event, options = {}) => {
   }
 
   const result = await runProcess(command, args, app.getAppPath());
+  return JSON.parse(result.stdout);
+});
+
+ipcMain.handle("credentials:status", async () => {
+  return {
+    secureStorageAvailable: safeStorage.isEncryptionAvailable(),
+    dbPath: resolveCredentialsDbPath(),
+  };
+});
+
+ipcMain.handle("credentials:list", async () => {
+  const result = await runCredentialsStore(["list", "--db", resolveCredentialsDbPath()]);
+  return JSON.parse(result.stdout);
+});
+
+ipcMain.handle("credentials:get", async (_event, serviceKey) => {
+  const result = await runCredentialsStore(["get", "--db", resolveCredentialsDbPath(), "--service-key", serviceKey]);
+  const payload = JSON.parse(result.stdout);
+  if (!payload) {
+    return null;
+  }
+  return {
+    serviceKey: payload.serviceKey,
+    label: payload.label,
+    credentialType: payload.credentialType,
+    email: decryptField(payload.emailEncrypted),
+    password: decryptField(payload.passwordEncrypted),
+    apiKey: decryptField(payload.apiKeyEncrypted),
+    notes: decryptField(payload.notesEncrypted),
+    updatedAt: payload.updatedAt,
+  };
+});
+
+ipcMain.handle("credentials:save", async (_event, payload) => {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid credential payload.");
+  }
+
+  const serviceKey = String(payload.serviceKey || "").trim();
+  const label = String(payload.label || "").trim();
+  const credentialType = String(payload.credentialType || "").trim();
+  if (!serviceKey || !label) {
+    throw new Error("Service key and label are required.");
+  }
+  if (!["api_key", "email_password"].includes(credentialType)) {
+    throw new Error("Credential type is required.");
+  }
+
+  await runCredentialsStore([
+    "upsert",
+    "--db",
+    resolveCredentialsDbPath(),
+    "--service-key",
+    serviceKey,
+    "--label",
+    label,
+    "--credential-type",
+    credentialType,
+    "--email",
+    encryptField(String(payload.email || "")),
+    "--password",
+    encryptField(String(payload.password || "")),
+    "--api-key",
+    encryptField(String(payload.apiKey || "")),
+    "--notes",
+    encryptField(String(payload.notes || "")),
+  ]);
+
+  return { stored: true };
+});
+
+ipcMain.handle("credentials:delete", async (_event, serviceKey) => {
+  const normalizedServiceKey = String(serviceKey || "").trim();
+  if (!normalizedServiceKey) {
+    throw new Error("Service key is required.");
+  }
+
+  const result = await runCredentialsStore([
+    "delete",
+    "--db",
+    resolveCredentialsDbPath(),
+    "--service-key",
+    normalizedServiceKey,
+  ]);
+
   return JSON.parse(result.stdout);
 });
 

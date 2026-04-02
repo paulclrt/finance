@@ -1,4 +1,5 @@
 import { moduleRegistry } from "../modules/index.js";
+import { setupCredentialsManager } from "./credentials.js";
 import { setupWorkspaceResizing } from "./workspace.js";
 
 const layoutConfig = {
@@ -23,4 +24,5 @@ function mountModules() {
 }
 
 mountModules();
+setupCredentialsManager();
 setupWorkspaceResizing(document.querySelector(".workspace"));
