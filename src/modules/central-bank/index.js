@@ -1,24 +1,8 @@
+import { renderIcon } from "../../renderer/icons.js";
+
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 
 let chartLibraryPromise;
-
-const ICONS = {
-  refresh: `
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M13.6 7a5.6 5.6 0 1 0 1 3.3h-1.8a3.9 3.9 0 1 1-1-3.7L9.8 8.6H15V3.4l-1.4 1.4A5.5 5.5 0 0 0 8 2.4 5.6 5.6 0 0 0 2.4 8 5.6 5.6 0 0 0 8 13.6 5.5 5.5 0 0 0 13.4 9H11.6A3.8 3.8 0 0 1 8 11.8 3.8 3.8 0 0 1 4.2 8 3.8 3.8 0 0 1 8 4.2c1 0 1.9.4 2.6 1l-1.8 1.8H13.6Z"/>
-    </svg>
-  `,
-  calendar: `
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M4 1.5h1.3v1.4h5.4V1.5H12v1.4h1.1A1.9 1.9 0 0 1 15 4.8v8.3a1.9 1.9 0 0 1-1.9 1.9H2.9A1.9 1.9 0 0 1 1 13.1V4.8a1.9 1.9 0 0 1 1.9-1.9H4V1.5Zm9.2 5H2.8v6.6c0 .2.1.4.4.4h9.6c.3 0 .4-.2.4-.4V6.5ZM3.2 4.4c-.3 0-.4.2-.4.4v.6h10.4v-.6c0-.2-.1-.4-.4-.4H3.2Z"/>
-    </svg>
-  `,
-  link: `
-    <svg viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M9.8 2H14v4.2h-1.6V4.7L7.6 9.5 6.5 8.4l4.8-4.8H9.8V2ZM3.9 3h4v1.6h-4c-.7 0-1.3.6-1.3 1.3v6.2c0 .7.6 1.3 1.3 1.3h6.2c.7 0 1.3-.6 1.3-1.3v-4H13v4A2.9 2.9 0 0 1 10.1 15H3.9A2.9 2.9 0 0 1 1 12.1V5.9A2.9 2.9 0 0 1 3.9 3Z"/>
-    </svg>
-  `,
-};
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -97,14 +81,14 @@ function iconButton({ icon, label, href, dataset = "" }) {
   if (href) {
     return `
       <a class="icon-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
-        ${ICONS[icon]}
+        ${renderIcon(icon)}
       </a>
     `;
   }
 
   return `
     <button class="icon-button" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${dataset}>
-      ${ICONS[icon]}
+      ${renderIcon(icon)}
     </button>
   `;
 }
@@ -185,12 +169,12 @@ function renderEventRow(event, currentEcbRates, currentFedRates) {
       </div>
       <div class="inline-actions">
         ${iconButton({
-          icon: "calendar",
+          icon: "calendarPlus",
           label: `Add ${event.bank} event to Google Calendar`,
           dataset: `data-calendar-url="${escapeHtml(buildCalendarUrl(event))}"`,
         })}
         ${iconButton({
-          icon: "link",
+          icon: "externalLink",
           label: `Open source for ${event.bank}`,
           href: event.sourceUrl,
         })}
@@ -393,7 +377,7 @@ async function loadCentralBankData(container, refresh = false) {
             <h2>Fed / ECB policy monitor</h2>
           </div>
           ${iconButton({
-            icon: "refresh",
+            icon: "refreshCw",
             label: "Refresh central bank data",
             dataset: 'data-action="refresh-central-banks"',
           })}
