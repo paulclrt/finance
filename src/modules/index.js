@@ -1,3 +1,4 @@
+import { renderCentralBankModule } from "./central-bank/index.js";
 import { renderInspectorModule } from "./inspector/index.js";
 import { renderLogsModule } from "./logs/index.js";
 import { renderNavigationModule } from "./navigation/index.js";
@@ -9,6 +10,9 @@ export const moduleRegistry = {
   },
   overview: {
     render: renderOverviewModule,
+  },
+  centralBank: {
+    render: renderCentralBankModule,
   },
   logs: {
     render: renderLogsModule,

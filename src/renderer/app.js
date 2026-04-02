@@ -3,7 +3,7 @@ import { setupWorkspaceResizing } from "./workspace.js";
 
 const layoutConfig = {
   left: "navigation",
-  main: "overview",
+  main: "centralBank",
   bottom: "logs",
   right: "inspector",
 };
