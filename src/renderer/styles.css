@@ -113,7 +113,7 @@ textarea {
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: 18% 6px 56% 6px 20%;
+  grid-template-columns: minmax(0, 1fr) 6px minmax(320px, 30%);
   gap: 0;
 }
 
@@ -125,19 +125,6 @@ textarea {
   border-radius: var(--radius);
   background: var(--bg-panel);
   box-shadow: var(--shadow);
-}
-
-.pane-center {
-  display: grid;
-  grid-template-rows: 62% 6px 38%;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  overflow: visible;
-}
-
-.pane-main,
-.pane-bottom {
   min-height: 0;
 }
 
@@ -292,6 +279,21 @@ textarea {
 
 .central-bank-chart {
   min-height: 220px;
+}
+
+.inflation-chart {
+  min-height: 260px;
+}
+
+.inflation-metric-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inflation-metric-value {
+  margin: 6px 0 2px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .chart-legend {
@@ -500,21 +502,8 @@ textarea {
     gap: 8px;
   }
 
-  .pane-center {
-    grid-template-rows: minmax(280px, 1fr) 6px minmax(180px, 0.7fr);
-  }
-
   .splitter-x {
     display: none;
-  }
-
-  .metric-grid,
-  .rate-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .event-row {
-    grid-template-columns: 1fr;
   }
 }
 
