@@ -21,6 +21,27 @@ function mountModules() {
   }
 }
 
-mountModules();
-setupCredentialsManager();
-setupWorkspaceResizing(document.querySelector(".workspace"));
+async function initializeApp() {
+  mountModules();
+  setupCredentialsManager();
+
+  let appConfig = null;
+  try {
+    appConfig = await window.financeDesktop.getAppConfig();
+  } catch (error) {
+    console.error("Unable to load app config:", error);
+  }
+
+  setupWorkspaceResizing(document.querySelector(".workspace"), {
+    initialLayout: appConfig?.layout,
+    onLayoutChange: async (layout) => {
+      try {
+        await window.financeDesktop.saveLayoutConfig(layout);
+      } catch (error) {
+        console.error("Unable to save layout config:", error);
+      }
+    },
+  });
+}
+
+initializeApp();
