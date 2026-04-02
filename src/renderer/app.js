@@ -3,10 +3,8 @@ import { setupCredentialsManager } from "./credentials.js";
 import { setupWorkspaceResizing } from "./workspace.js";
 
 const layoutConfig = {
-  left: "navigation",
   main: "centralBank",
-  bottom: "logs",
-  right: "inspector",
+  right: "inflation",
 };
 
 function mountModules() {
