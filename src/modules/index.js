@@ -1,6 +1,7 @@
 import { renderCentralBankModule } from "./central-bank/index.js";
 import { defaultEnabledWidgetIds, getWidgetById, widgetCatalog } from "./catalog.js";
 import { renderInflationModule } from "./inflation/index.js";
+import { renderRiskModule } from "./risk/index.js";
 import { renderInspectorModule } from "./inspector/index.js";
 import { renderLogsModule } from "./logs/index.js";
 // import { renderNavigationModule } from "./navigation/index.js";
@@ -55,6 +56,9 @@ export const moduleRegistry = {
   },
   ticker: {
     render: renderTickerModule,
+  },
+  risk: {
+    render: renderRiskModule,
   },
   // logs: {
   //   render: renderLogsModule,
