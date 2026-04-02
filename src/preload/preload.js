@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("financeDesktop", {
   saveCredential: (payload) => ipcRenderer.invoke("credentials:save", payload),
   deleteCredential: (serviceKey) => ipcRenderer.invoke("credentials:delete", serviceKey),
   getCredentialStatus: () => ipcRenderer.invoke("credentials:status"),
+  getAppConfig: () => ipcRenderer.invoke("config:get"),
+  saveLayoutConfig: (layout) => ipcRenderer.invoke("config:save-layout", layout),
   onOpenCredentials: (callback) => {
     ipcRenderer.removeAllListeners("ui:open-credentials");
     ipcRenderer.on("ui:open-credentials", () => callback());
