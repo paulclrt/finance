@@ -10,21 +10,17 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div>
+        <div class="topbar-brand">
           <p class="eyebrow">Local workspace</p>
           <h1>Finance lab</h1>
         </div>
-        <div class="topbar-meta">
+        <div class="topbar-meta" data-topbar-meta>
           <span class="status-dot"></span>
           <span>local cache</span>
         </div>
       </header>
 
-      <main class="workspace">
-        <section class="pane pane-main" data-pane="main"></section>
-        <div class="splitter splitter-x" data-splitter="right"></div>
-        <section class="pane pane-right" data-pane="right"></section>
-      </main>
+      <main class="workspace" data-widget-board></main>
     </div>
 
     <script type="module" src="./app.js"></script>
