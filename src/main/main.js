@@ -26,6 +26,14 @@ function resolveCredentialsDbPath() {
   return path.join(app.getPath("userData"), "data", "credentials.sqlite3");
 }
 
+function resolveInflationDbPath() {
+  return path.join(app.getPath("userData"), "data", "inflation.sqlite3");
+}
+
+function resolveRiskDbPath() {
+  return path.join(app.getPath("userData"), "data", "risk.sqlite3");
+}
+
 function resolveConfigPath() {
   return path.join(app.getPath("userData"), "config", "app-state.xml");
 }
@@ -382,6 +390,20 @@ async function getDecryptedCredential(serviceKey) {
   };
 }
 
+async function getFredApiKey() {
+  const credential =
+    (await getDecryptedCredential("fredapikey")) ||
+    (await getDecryptedCredential("fred")) ||
+    (await getDecryptedCredential("FRED"));
+
+  const apiKey = String(credential?.apiKey || credential?.password || "").trim();
+  if (!apiKey) {
+    throw new Error("Missing FRED API key. Save it in Settings > Credentials under service key 'fredapikey'.");
+  }
+
+  return apiKey;
+}
+
 function encryptField(value) {
   if (!value) {
     return "";
@@ -656,18 +678,33 @@ ipcMain.handle("data:get-ticker-data", async (_event, options = {}) => {
 
 ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-inflation-data.py");
-  const dbPath = path.join(app.getPath("userData"), "data", "inflation.sqlite3");
+  const dbPath = resolveInflationDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
-  const credential =
-    (await getDecryptedCredential("fredapikey")) ||
-    (await getDecryptedCredential("fred")) ||
-    (await getDecryptedCredential("FRED"));
+  const apiKey = await getFredApiKey();
 
-  const apiKey = String(credential?.apiKey || credential?.password || "").trim();
-  if (!apiKey) {
-    throw new Error("Missing FRED API key. Save it in Settings > Credentials under service key 'fredapikey'.");
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [...prefixArgs, scriptPath, "--db", dbPath];
+  if (options?.refresh) {
+    args.push("--refresh");
   }
+  if (options?.years) {
+    args.push("--years", String(options.years));
+  }
+
+  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+    FRED_API_KEY: apiKey,
+  });
+  return JSON.parse(result.stdout);
+});
+
+ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-risk-data.py");
+  const dbPath = resolveRiskDbPath();
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+  const apiKey = await getFredApiKey();
 
   fs.mkdirSync(dbDirectory, { recursive: true });
 

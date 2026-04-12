@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("financeDesktop", {
   getCentralBankEvents: (options) => ipcRenderer.invoke("data:get-central-bank-events", options),
   getTickerData: (options) => ipcRenderer.invoke("data:get-ticker-data", options),
   getInflationData: (options) => ipcRenderer.invoke("data:get-inflation-data", options),
+  getRiskData: (options) => ipcRenderer.invoke("data:get-risk-data", options),
   openExternal: (url) => ipcRenderer.invoke("shell:open-external", url),
   listCredentials: () => ipcRenderer.invoke("credentials:list"),
   getCredential: (serviceKey) => ipcRenderer.invoke("credentials:get", serviceKey),
