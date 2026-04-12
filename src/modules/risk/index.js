@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 
@@ -270,22 +271,19 @@ async function loadRiskData(container, refresh = false) {
             <p class="eyebrow">Risk</p>
             <h2>Stress monitor</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh risk data",
-            dataset: 'data-action="refresh-risk"',
-          })}
+          <div class="inline-actions">
+            ${renderSourceIndicator(payload.servedFrom, formatTimestamp(payload.lastSuccessfulRefresh))}
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh risk data",
+              dataset: 'data-action="refresh-risk"',
+            })}
+          </div>
         </div>
 
         <section class="metric-grid metric-grid-compact risk-grid">
           ${(payload.indicators ?? []).map((indicator) => renderIndicatorCard(indicator)).join("")}
         </section>
-
-        <article class="metric-card rate-chip-meta">
-          <span>Source / refresh</span>
-          <strong>${escapeHtml(payload.servedFrom ?? "unknown")}</strong>
-          <p class="muted">${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</p>
-        </article>
 
         ${renderWarningList(payload.warnings)}
 

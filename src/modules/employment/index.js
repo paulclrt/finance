@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
@@ -212,11 +213,6 @@ function renderMetricCards(payload) {
         <p class="inflation-metric-value">${escapeHtml(formatThousands(latest.joltsOpenings?.value))}</p>
         <p class="muted">${escapeHtml(formatMonth(latest.joltsOpenings?.time))}</p>
       </article>
-      <article class="metric-card rate-chip-meta">
-        <span>Source / refresh</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")}</strong>
-        <p class="muted">${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</p>
-      </article>
     </section>
   `;
 }
@@ -302,6 +298,7 @@ async function loadEmploymentData(container, refresh = false) {
             <h2>NFP, unemployment and JOLTS</h2>
           </div>
           <div class="inline-actions">
+            ${renderSourceIndicator(payload.servedFrom, formatTimestamp(payload.lastSuccessfulRefresh))}
             ${renderRangeSelector(state.range, "employment")}
             ${iconButton({
               icon: "refreshCw",
