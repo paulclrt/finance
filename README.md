@@ -2,6 +2,9 @@
 
 Squelette local d'application Electron pour un dashboard finance/quant modulaire.
 
+![./docs/images/finlab.png](./docs/images/finlab.png)
+
+
 ## Prerequisites
 
 - Node.js et npm

@@ -4,22 +4,22 @@ export function renderNavigationModule(container) {
       <div class="panel-header">
         <div>
           <p class="eyebrow">Modules</p>
-          <h2>Workspace</h2>
+          <h2>Desk</h2>
         </div>
       </div>
 
       <div class="nav-list">
         <article class="nav-item">
-          <strong>Market Watch</strong>
-          <p>Future container for quotes, macro feeds, and alerts.</p>
+          <strong>Rates</strong>
+          <p>ECB events and key rates.</p>
         </article>
         <article class="nav-item">
-          <strong>Research Lab</strong>
-          <p>Backtests, feature engineering, and ML experiments will plug in here.</p>
+          <strong>Research</strong>
+          <p>Backtests and ML modules later.</p>
         </article>
         <article class="nav-item">
-          <strong>Native Connectors</strong>
-          <p>Compiled tools can stream data and diagnostics into the dashboard.</p>
+          <strong>Native</strong>
+          <p>Small local binaries and logs.</p>
         </article>
       </div>
     </div>
