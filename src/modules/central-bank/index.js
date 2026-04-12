@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 
@@ -137,10 +138,6 @@ function renderRateStrip(currentEcbRates, currentFedRates, payload) {
       <article class="rate-chip">
         <span>Fed range</span>
         <strong>${escapeHtml(formatFedRange(currentFedRates))}</strong>
-      </article>
-      <article class="rate-chip rate-chip-meta">
-        <span>Source / refresh</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")} · ${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</strong>
       </article>
     </section>
   `;
@@ -376,11 +373,14 @@ async function loadCentralBankData(container, refresh = false) {
             <p class="eyebrow">Rates</p>
             <h2>Fed / ECB policy monitor</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh central bank data",
-            dataset: 'data-action="refresh-central-banks"',
-          })}
+          <div class="inline-actions">
+            ${renderSourceIndicator(payload.servedFrom, formatTimestamp(payload.lastSuccessfulRefresh))}
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh central bank data",
+              dataset: 'data-action="refresh-central-banks"',
+            })}
+          </div>
         </div>
 
         ${renderRateStrip(currentEcbRates, currentFedRates, payload)}

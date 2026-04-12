@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 
@@ -114,11 +115,6 @@ function renderMetricCards(latest, payload) {
           `;
         })
         .join("")}
-      <article class="metric-card rate-chip-meta">
-        <span>Source / refresh</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")}</strong>
-        <p class="muted">${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</p>
-      </article>
     </section>
   `;
 }
@@ -132,11 +128,13 @@ function renderEmptyState(message) {
             <p class="eyebrow">Inflation</p>
             <h2>CPI / PCE / HICP</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh inflation data",
-            dataset: 'data-action="refresh-inflation"',
-          })}
+          <div class="inline-actions">
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh inflation data",
+              dataset: 'data-action="refresh-inflation"',
+            })}
+          </div>
         </div>
         <section class="status-note empty-state">
           <p>${escapeHtml(message)}</p>
@@ -220,11 +218,14 @@ async function loadInflationData(container, refresh = false) {
             <p class="eyebrow">Inflation</p>
             <h2>CPI / PCE / HICP</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh inflation data",
-            dataset: 'data-action="refresh-inflation"',
-          })}
+          <div class="inline-actions">
+            ${renderSourceIndicator(payload.servedFrom, formatTimestamp(payload.lastSuccessfulRefresh))}
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh inflation data",
+              dataset: 'data-action="refresh-inflation"',
+            })}
+          </div>
         </div>
 
         ${renderMetricCards(payload.latest, payload)}

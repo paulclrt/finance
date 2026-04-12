@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
@@ -215,10 +216,6 @@ function renderMetrics(payload) {
         <span>Haut / Bas</span>
         <strong>${escapeHtml(formatPrice(lastPrice.High, currency))} / ${escapeHtml(formatPrice(lastPrice.Low, currency))}</strong>
       </article>
-      <article class="rate-chip rate-chip-meta">
-        <span>Source</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")} · ${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</strong>
-      </article>
     </section>
   `;
 }
@@ -305,11 +302,14 @@ function renderTickerView(container) {
           <p class="eyebrow">Market Data</p>
           <h2>${escapeHtml(title)}</h2>
         </div>
-        ${iconButton({
-          icon: "refreshCw",
-          label: "Actualiser les données du ticker",
-          dataset: 'data-action="refresh-ticker"',
-        })}
+        <div class="inline-actions">
+          ${state.payload ? renderSourceIndicator(state.payload.servedFrom, formatTimestamp(state.payload.lastSuccessfulRefresh)) : ""}
+          ${iconButton({
+            icon: "refreshCw",
+            label: "Actualiser les données du ticker",
+            dataset: 'data-action="refresh-ticker"',
+          })}
+        </div>
       </div>
 
       ${renderSearchBar(state)}
