@@ -1,0 +1,46 @@
+.ticker-search-bar {
+    display: flex;
+    flex-direction: inline;
+    flex-wrap: wrap;
+}
+
+.ticker-input {
+    border-radius: 0.3em;
+    padding: 0.5em;
+    border: 1px solid grey;
+}
+
+.search-input-group {
+
+}
+
+.search-ticker-btn {
+    padding: 0.5em;
+    background-color: black;
+    color: white;
+    border: 1px solid grey;
+    border-radius: 0.3em;
+    font-weight: 600;
+}
+
+
+
+
+
+
+.duration-selector {
+
+}
+
+.duration-btn {
+    background-color: white;
+    color: rgba(0, 0, 0, 0.932);
+    border: 1px solid grey;
+    border-radius: 0.3em;
+    font-weight: 600;
+}
+
+.duration-selector .active {
+    background-color: black;
+    color: white;
+}

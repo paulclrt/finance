@@ -22,4 +22,5 @@ contextBridge.exposeInMainWorld("financeDesktop", {
     ipcRenderer.removeAllListeners("ui:app-config-updated");
     ipcRenderer.on("ui:app-config-updated", (_event, config) => callback(config));
   },
+  stylesheetExists: (stylesheetPath) => ipcRenderer.invoke("fs:check-file-exists", stylesheetPath),
 });

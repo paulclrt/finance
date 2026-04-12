@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 
@@ -7,12 +8,12 @@ let currentTicker = null;
 let currentDuration = "1mo";
 
 const DURATION_OPTIONS = [
-  { value: "1d", label: "1D" },
-  { value: "5d", label: "5D" },
-  { value: "1mo", label: "1M" },
-  { value: "3mo", label: "3M" },
-  { value: "6mo", label: "6M" },
-  { value: "1y", label: "1Y" },
+  { value: "1d", label: "1d" },
+  { value: "5d", label: "5d" },
+  { value: "1mo", label: "1mo" },
+  { value: "3mo", label: "3mo" },
+  { value: "6mo", label: "6mo" },
+  { value: "1y", label: "1y" },
   { value: "ytd", label: "YTD" },
   { value: "max", label: "ALL" },
 ];
@@ -226,7 +227,7 @@ async function loadTickerData(container, refresh = false) {
               data-ticker-input
               autofocus
             >
-            <button type="button" class="btn primary" data-action="search-ticker">Chercher</button>
+            <button type="button" class="search-ticker-btn" data-action="search-ticker">Chercher</button>
           </div>
           
           <div class="duration-selector">
@@ -287,7 +288,7 @@ async function loadTickerData(container, refresh = false) {
               value="${escapeHtml(currentTicker)}"
               data-ticker-input
             >
-            <button type="button" class="btn primary" data-action="search-ticker">Chercher</button>
+            <button type="button" class="search-ticker-btn" data-action="search-ticker">Chercher</button>
           </div>
           
           <div class="duration-selector">
@@ -408,5 +409,6 @@ function attachBaseListeners(container) {
 
 export function renderTickerModule(container) {
   currentTicker = null;
+  addStyleSheet("ticker-styles.css", "ticker")
   loadTickerData(container);
 }

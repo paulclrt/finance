@@ -124,19 +124,25 @@ function renderMetricCards(latest, payload) {
 }
 
 function renderEmptyState(message) {
+
   return `
-    <div class="module-card">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Inflation</p>
-          <h2>CPI / PCE / HICP</h2>
+      <div class="module-card">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Inflation</p>
+            <h2>CPI / PCE / HICP</h2>
+          </div>
+          ${iconButton({
+            icon: "refreshCw",
+            label: "Refresh inflation data",
+            dataset: 'data-action="refresh-inflation"',
+          })}
         </div>
+        <section class="status-note empty-state">
+          <p>${escapeHtml(message)}</p>
+        </section>
       </div>
-      <section class="status-note empty-state">
-        <p>${escapeHtml(message)}</p>
-      </section>
-    </div>
-  `;
+    `;
 }
 
 function mountChart(container, payload) {
@@ -268,6 +274,9 @@ async function loadInflationData(container, refresh = false) {
     }
   } catch (error) {
     container.innerHTML = renderEmptyState(error.message || "Unable to load inflation data.");
+    container.querySelector('[data-action="refresh-inflation"]')?.addEventListener("click", () => {
+      loadInflationData(container, true);
+    });
   }
 }
 

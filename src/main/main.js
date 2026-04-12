@@ -410,6 +410,10 @@ function broadcastAppConfig(mainWindow) {
   mainWindow.webContents.send("ui:app-config-updated", readAppConfig());
 }
 
+function checkFileExists(filePath) {
+  
+}
+
 function toggleWidgetInMenu(mainWindow, widgetId, nextChecked) {
   const enabled = parseEnabledWidgetIds();
   const nextEnabled = nextChecked
@@ -793,6 +797,13 @@ ipcMain.handle("shell:open-external", async (_event, url) => {
 
   await shell.openExternal(url);
 });
+
+ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
+  const sourceFile = path.join(__dirname, "renderer", filePath);
+  return fs.existsSync(sourceFile);
+});
+
+
 
 app.whenReady().then(() => {
   ensureAppConfigFile();
