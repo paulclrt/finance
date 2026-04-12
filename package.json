@@ -15,6 +15,7 @@
     "electron": "^41.0.3"
   },
   "dependencies": {
+    "fs": "^0.0.1-security",
     "lucide-static": "^1.7.0"
   }
 }

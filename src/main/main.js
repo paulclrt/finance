@@ -34,6 +34,88 @@ let appConfigState = null;
 let configWriteTimer = null;
 let configWritePromise = null;
 
+const WIDGET_MENU_GROUPS = [
+  {
+    id: "policy",
+    label: "Politique monetaire",
+    items: [
+      {
+        id: "centralBank",
+        title: "Central Banks",
+        description: "Fed and ECB key rates, calendar and policy path.",
+      },
+      {
+        id: "yieldCurve",
+        title: "Yield Curve",
+        description: "US Treasuries 2Y, 10Y and 30Y. The 2Y/10Y inversion is a classic recession signal.",
+      },
+      {
+        id: "fedFundsFutures",
+        title: "Fed Funds Futures",
+        description: "Market-implied view of what the Fed is expected to do next.",
+      },
+      {
+        id: "balanceSheet",
+        title: "Balance Sheet",
+        description: "Fed and ECB balance sheet expansion or contraction for QE and QT tracking.",
+      },
+    ],
+  },
+  {
+    id: "macro",
+    label: "Macro reelle",
+    items: [
+      { id: "inflation", title: "Inflation", description: "CPI, PCE and HICP inflation tracking." },
+      { id: "employment", title: "Employment", description: "NFP, unemployment and JOLTS labor market indicators." },
+      { id: "growth", title: "Growth", description: "GDP, ISM and PMIs to monitor the cycle." },
+      {
+        id: "surpriseIndex",
+        title: "Surprise Index",
+        description: "Economic surprise gauge to explain market reactions versus expectations.",
+      },
+    ],
+  },
+  {
+    id: "markets",
+    label: "Marches financiers",
+    items: [
+      { id: "ticker", title: "Stock & Funds", description: "Explore Stocks and fund value over time"},
+      { id: "equities", title: "Equities", description: "S&P 500, Nasdaq and Euro Stoxx 50 market dashboard." },
+      { id: "fx", title: "FX", description: "DXY, EUR/USD and USD/JPY foreign-exchange monitor." },
+      { id: "commodities", title: "Commodities", description: "WTI, Brent, Gold and Copper as global macro barometers." },
+      {
+        id: "creditSpreads",
+        title: "Credit Spreads",
+        description: "Investment grade versus high yield spread stress monitor.",
+      },
+    ],
+  },
+  {
+    id: "risk",
+    label: "Sentiment et risque",
+    items: [
+      {
+        id: "risk",
+        title: "Sentiment & Risk",
+        description: "VIX, bond volatility, put/call ratio and fear versus greed.",
+      },
+    ],
+  },
+  {
+    id: "correlations",
+    label: "Correlations et causalite",
+    items: [
+      {
+        id: "correlations",
+        title: "Correlations Graph",
+        description: "Dependency map between policy, rates, FX, gold, equities and banks.",
+      },
+    ],
+  },
+];
+
+const DEFAULT_ENABLED_WIDGET_IDS = ["centralBank", "inflation"];
+
 function getDefaultAppConfig() {
   return {
     window: {
@@ -46,8 +128,12 @@ function getDefaultAppConfig() {
     },
     layout: {
       leftWidth: 18,
-      rightWidth: 20,
-      bottomHeight: 38,
+      rightWidth: 32,
+      bottomHeight: 44,
+    },
+    widgets: {
+      enabled: "centralBank,inflation",
+      layout: "",
     },
   };
 }
@@ -60,6 +146,14 @@ function escapeXml(value) {
     .replaceAll("\"", "&quot;");
 }
 
+function unescapeXml(value) {
+  return String(value ?? "")
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&amp;", "&");
+}
+
 function parseTagAttributes(xml, tagName) {
   const match = xml.match(new RegExp(`<${tagName}\\s+([^>]+?)\\s*\\/?>`, "i"));
   if (!match) {
@@ -67,7 +161,7 @@ function parseTagAttributes(xml, tagName) {
   }
 
   return Object.fromEntries(
-    [...match[1].matchAll(/([a-zA-Z0-9_:-]+)="([^"]*)"/g)].map(([, key, value]) => [key, value]),
+    [...match[1].matchAll(/([a-zA-Z0-9_:-]+)="([^"]*)"/g)].map(([, key, value]) => [key, unescapeXml(value)]),
   );
 }
 
@@ -106,6 +200,7 @@ function readAppConfig() {
     const xml = fs.readFileSync(configPath, "utf8");
     const windowAttributes = parseTagAttributes(xml, "window");
     const layoutAttributes = parseTagAttributes(xml, "layout");
+    const widgetAttributes = parseTagAttributes(xml, "widgets");
 
     appConfigState = {
       window: {
@@ -120,6 +215,10 @@ function readAppConfig() {
         leftWidth: toFiniteNumber(layoutAttributes.leftWidth, defaults.layout.leftWidth),
         rightWidth: toFiniteNumber(layoutAttributes.rightWidth, defaults.layout.rightWidth),
         bottomHeight: toFiniteNumber(layoutAttributes.bottomHeight, defaults.layout.bottomHeight),
+      },
+      widgets: {
+        enabled: widgetAttributes.enabled || defaults.widgets.enabled,
+        layout: widgetAttributes.layout || defaults.widgets.layout,
       },
     };
     return appConfigState;
@@ -136,6 +235,7 @@ function serializeAppConfig(config) {
     "<app-config>",
     `  <window width="${escapeXml(config.window.width)}" height="${escapeXml(config.window.height)}" x="${escapeXml(config.window.x ?? "")}" y="${escapeXml(config.window.y ?? "")}" isMaximized="${escapeXml(config.window.isMaximized)}" isFullScreen="${escapeXml(config.window.isFullScreen)}" />`,
     `  <layout leftWidth="${escapeXml(config.layout.leftWidth)}" rightWidth="${escapeXml(config.layout.rightWidth)}" bottomHeight="${escapeXml(config.layout.bottomHeight)}" />`,
+    `  <widgets enabled="${escapeXml(config.widgets.enabled)}" layout="${escapeXml(config.widgets.layout ?? "")}" />`,
     "</app-config>",
     "",
   ].join("\n");
@@ -174,6 +274,10 @@ function mergeAppConfig(partialConfig) {
       ...currentConfig.layout,
       ...(partialConfig.layout ?? {}),
     },
+    widgets: {
+      ...currentConfig.widgets,
+      ...(partialConfig.widgets ?? {}),
+    },
   };
   scheduleAppConfigWrite();
   return appConfigState;
@@ -186,6 +290,31 @@ function ensureAppConfigFile() {
     appConfigState = defaults;
     writeAppConfigSync(defaults);
   }
+}
+
+function parseEnabledWidgetIds(config = readAppConfig()) {
+  const allowed = new Set(WIDGET_MENU_GROUPS.flatMap((group) => group.items.map((item) => item.id)));
+  const rawEnabled = config?.widgets?.enabled;
+  if (rawEnabled === "") {
+    return [];
+  }
+
+  const enabled = String(rawEnabled || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item && allowed.has(item));
+
+  return enabled.length ? enabled : [...DEFAULT_ENABLED_WIDGET_IDS];
+}
+
+function setEnabledWidgetIds(widgetIds) {
+  const normalized = [...new Set(widgetIds.map((item) => String(item || "").trim()).filter(Boolean))];
+  mergeAppConfig({
+    widgets: {
+      enabled: normalized.join(","),
+    },
+  });
+  return normalized;
 }
 
 function runProcess(command, args, cwd) {
@@ -273,8 +402,46 @@ function decryptField(value) {
   return safeStorage.decryptString(Buffer.from(value, "base64"));
 }
 
+function broadcastAppConfig(mainWindow) {
+  if (!mainWindow?.webContents || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  mainWindow.webContents.send("ui:app-config-updated", readAppConfig());
+}
+
+function checkFileExists(filePath) {
+  
+}
+
+function toggleWidgetInMenu(mainWindow, widgetId, nextChecked) {
+  const enabled = parseEnabledWidgetIds();
+  const nextEnabled = nextChecked
+    ? [...enabled, widgetId]
+    : enabled.filter((item) => item !== widgetId);
+
+  setEnabledWidgetIds(nextEnabled);
+  Menu.setApplicationMenu(buildAppMenu(mainWindow));
+  broadcastAppConfig(mainWindow);
+}
+
+function resetAppLayout(mainWindow) {
+  mergeAppConfig({
+    layout: {
+      rightWidth: getDefaultAppConfig().layout.rightWidth,
+      bottomHeight: getDefaultAppConfig().layout.bottomHeight,
+    },
+    widgets: {
+      enabled: DEFAULT_ENABLED_WIDGET_IDS.join(","),
+    },
+  });
+  Menu.setApplicationMenu(buildAppMenu(mainWindow));
+  broadcastAppConfig(mainWindow);
+}
+
 function buildAppMenu(mainWindow) {
   const template = [];
+  const enabledWidgetIds = parseEnabledWidgetIds();
 
   if (process.platform === "darwin") {
     template.push({ role: "appMenu" });
@@ -290,7 +457,40 @@ function buildAppMenu(mainWindow) {
           mainWindow.webContents.send("ui:open-credentials");
         },
       },
+      {
+        label: "Reset Layout",
+        click: () => {
+          resetAppLayout(mainWindow);
+        },
+      },
     ],
+  });
+
+  template.push({
+    label: "Compte",
+    submenu: [
+      {
+        label: "Local Profile",
+        enabled: false,
+        toolTip: "App state, layout and credentials stay local by default.",
+      },
+    ],
+  });
+
+  template.push({
+    label: "Windows",
+    submenu: WIDGET_MENU_GROUPS.map((group) => ({
+      label: group.label,
+      submenu: group.items.map((item) => ({
+        label: item.title,
+        type: "checkbox",
+        checked: enabledWidgetIds.includes(item.id),
+        toolTip: item.description,
+        click: (menuItem) => {
+          toggleWidgetInMenu(mainWindow, item.id, menuItem.checked);
+        },
+      })),
+    })),
   });
 
   template.push({
@@ -308,6 +508,24 @@ function buildAppMenu(mainWindow) {
       submenu: [{ role: "quit" }],
     });
   }
+
+  template.push({
+    label: "Soutenir",
+    submenu: [
+      {
+        label: "GitHub",
+        click: async () => {
+          await shell.openExternal("https://github.com/paulclrt/finance");
+        },
+      },
+      {
+        label: "Author Website",
+        click: async () => {
+          await shell.openExternal("https://portfolio.paul-claret.fr");
+        },
+      },
+    ],
+  });
 
   return Menu.buildFromTemplate(template);
 }
@@ -419,6 +637,23 @@ ipcMain.handle("data:get-central-bank-events", async (_event, options = {}) => {
   return JSON.parse(result.stdout);
 });
 
+ipcMain.handle("data:get-ticker-data", async (_event, options = {}) => {
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-ticker.py");
+  const dbPath = path.join(app.getPath("userData"), "data", "ticker.sqlite3");
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [...prefixArgs, scriptPath, "--db", dbPath, "--ticker", options.ticker || "AAPL", "--duration", options.duration || "1mo"];
+  if (options?.refresh) {
+    args.push("--refresh");
+  }
+
+  const result = await runProcess(command, args, app.getAppPath());
+  return JSON.parse(result.stdout);
+});
+
 ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-inflation-data.py");
   const dbPath = path.join(app.getPath("userData"), "data", "inflation.sqlite3");
@@ -468,6 +703,26 @@ ipcMain.handle("config:save-layout", async (_event, layout) => {
     bottomHeight: toFiniteNumber(layout?.bottomHeight, getDefaultAppConfig().layout.bottomHeight),
   };
   mergeAppConfig({ layout: safeLayout });
+  return { stored: true };
+});
+
+ipcMain.handle("config:save-widgets", async (_event, widgets) => {
+  const mainWindow = BrowserWindow.fromWebContents(_event.sender);
+  const enabled = Array.isArray(widgets?.enabled)
+    ? widgets.enabled.map((item) => String(item || "").trim()).filter(Boolean)
+    : [...DEFAULT_ENABLED_WIDGET_IDS];
+  setEnabledWidgetIds(enabled);
+  if (typeof widgets?.layout === "string") {
+    mergeAppConfig({
+      widgets: {
+        layout: widgets.layout,
+      },
+    });
+  }
+  if (mainWindow) {
+    Menu.setApplicationMenu(buildAppMenu(mainWindow));
+    broadcastAppConfig(mainWindow);
+  }
   return { stored: true };
 });
 
@@ -542,6 +797,13 @@ ipcMain.handle("shell:open-external", async (_event, url) => {
 
   await shell.openExternal(url);
 });
+
+ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
+  const sourceFile = path.join(__dirname, "renderer", filePath);
+  return fs.existsSync(sourceFile);
+});
+
+
 
 app.whenReady().then(() => {
   ensureAppConfigFile();

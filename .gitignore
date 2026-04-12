@@ -2,3 +2,4 @@ node_modules/
 native/bin/
 scripts/__pycache__/
 .codex
+venv/
