@@ -433,6 +433,43 @@ function setActiveTab(node, widgetId) {
   return node;
 }
 
+function undockTab(node, widgetId) {
+  if (!node) {
+    return null;
+  }
+
+  if (node.type === "tabs" && node.children.some((child) => child.widgetId === widgetId)) {
+    if (node.children.length <= 1) {
+      return node;
+    }
+
+    const remainingChildren = node.children.filter((child) => child.widgetId !== widgetId);
+    const remainingTabs = normalizeTabsNode({
+      ...node,
+      children: remainingChildren,
+      activeWidgetId: remainingChildren[0]?.widgetId ?? null,
+    });
+
+    return createSplitNode("row", [remainingTabs, createWidgetNode(widgetId)], [0.68, 0.32]);
+  }
+
+  if (node.type === "split") {
+    return normalizeSplitNode({
+      ...node,
+      children: node.children.map((child) => undockTab(child, widgetId)),
+    });
+  }
+
+  if (node.type === "tabs") {
+    return normalizeTabsNode({
+      ...node,
+      children: node.children.map((child) => undockTab(child, widgetId)),
+    });
+  }
+
+  return node;
+}
+
 function closeWidget(widgetId) {
   currentEnabledWidgetIds = currentEnabledWidgetIds.filter((item) => item !== widgetId);
   currentLayoutTree = removeWidgetFromTree(currentLayoutTree, widgetId);
@@ -516,6 +553,15 @@ function renderDockNode(node, path = []) {
             `;
           })
           .join("")}
+        <button
+          class="icon-button widget-tab-undock-button"
+          type="button"
+          data-undock-widget="${escapeHtml(activeId)}"
+          aria-label="Undock active tab"
+          title="Undock active tab"
+        >
+          ${renderIcon("arrowUpRight")}
+        </button>
       </div>
     `;
     return renderTileFrame({
@@ -681,6 +727,24 @@ function bindBoardInteractions() {
         await persistWidgets();
       } catch (error) {
         console.error("Unable to save active tab:", error);
+      }
+    });
+  });
+
+  board.querySelectorAll("[data-undock-widget]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const widgetId = button.getAttribute("data-undock-widget");
+      if (!widgetId) {
+        return;
+      }
+
+      currentLayoutTree = undockTab(currentLayoutTree, widgetId);
+      currentEnabledWidgetIds = collectWidgetIds(currentLayoutTree, []);
+      renderWorkspace();
+      try {
+        await persistWidgets();
+      } catch (error) {
+        console.error("Unable to save undocked tab layout:", error);
       }
     });
   });

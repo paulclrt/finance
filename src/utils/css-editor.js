@@ -1,28 +1,22 @@
-export function addStyleSheet(stylesheetPath, styleSheetID)
-{
-    var head = document.querySelector("head")
-    var stylesheet = document.getElementById("stylesheet-"+styleSheetID)
-    if (stylesheet !== null)
-        throw "This stylesheet already is present";
+export function addStyleSheet(stylesheetPath, styleSheetID) {
+  const head = document.querySelector("head");
+  if (!head) {
+    return null;
+  }
 
-    // check stylesheet exists
-    if (!window.financeDesktop.stylesheetExists(stylesheetPath)) {
-        console.log(`The file or directory at '${sourceFile}' does not exist.`);
-        throw "This stylesheet doesn't exists";
-    } 
+  const existing = document.getElementById(`stylesheet-${styleSheetID}`);
+  if (existing) {
+    return existing;
+  }
 
-
-    stylesheet = document.createElement("link")
-    stylesheet.setAttribute("rel", "stylesheet")
-    stylesheet.setAttribute("href", stylesheetPath)
-    stylesheet.setAttribute("id", "stylesheet-"+styleSheetID)
-    head.appendChild(stylesheet)
+  const stylesheet = document.createElement("link");
+  stylesheet.setAttribute("rel", "stylesheet");
+  stylesheet.setAttribute("href", stylesheetPath);
+  stylesheet.setAttribute("id", `stylesheet-${styleSheetID}`);
+  head.appendChild(stylesheet);
+  return stylesheet;
 }
 
-export function removeStyleSheet(styleSheetID)
-{
-    var stylesheet = document.getElementById("stylesheet-"+styleSheetID)
-    if (stylesheet === null)
-        throw "This stylesheet already does not exists";
-    stylesheet.remove()
+export function removeStyleSheet(styleSheetID) {
+  document.getElementById(`stylesheet-${styleSheetID}`)?.remove();
 }

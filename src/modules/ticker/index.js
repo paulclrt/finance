@@ -2,18 +2,19 @@ import { renderIcon } from "../../renderer/icons.js";
 import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
+const TICKER_STYLESHEET_ID = "ticker";
+const TICKER_STYLESHEET_PATH = "./ticker-styles.css";
 
 let chartLibraryPromise;
-let currentTicker = null;
-let currentDuration = "1mo";
+const tickerStateByContainer = new WeakMap();
 
 const DURATION_OPTIONS = [
-  { value: "1d", label: "1d" },
-  { value: "5d", label: "5d" },
-  { value: "1mo", label: "1mo" },
-  { value: "3mo", label: "3mo" },
-  { value: "6mo", label: "6mo" },
-  { value: "1y", label: "1y" },
+  { value: "1d", label: "1D" },
+  { value: "5d", label: "5D" },
+  { value: "1mo", label: "1M" },
+  { value: "3mo", label: "3M" },
+  { value: "6mo", label: "6M" },
+  { value: "1y", label: "1Y" },
   { value: "ytd", label: "YTD" },
   { value: "max", label: "ALL" },
 ];
@@ -26,6 +27,25 @@ function escapeHtml(value) {
     .replaceAll("\"", "&quot;");
 }
 
+function getTickerState(container) {
+  let state = tickerStateByContainer.get(container);
+  if (state) {
+    return state;
+  }
+
+  state = {
+    ticker: "",
+    inputValue: "",
+    duration: "1mo",
+    isLoading: false,
+    error: "",
+    payload: null,
+    requestId: 0,
+  };
+  tickerStateByContainer.set(container, state);
+  return state;
+}
+
 function loadChartLibrary() {
   if (window.LightweightCharts) {
     return Promise.resolve(window.LightweightCharts);
@@ -36,9 +56,7 @@ function loadChartLibrary() {
       const existing = document.querySelector("script[data-lightweight-charts]");
       if (existing) {
         existing.addEventListener("load", () => resolve(window.LightweightCharts), { once: true });
-        existing.addEventListener("error", () => reject(new Error("Chart library failed to load.")), {
-          once: true,
-        });
+        existing.addEventListener("error", () => reject(new Error("Chart library failed to load.")), { once: true });
         return;
       }
 
@@ -55,13 +73,6 @@ function loadChartLibrary() {
   return chartLibraryPromise;
 }
 
-function formatDate(dateString) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(dateString));
-}
-
 function formatTimestamp(dateString) {
   if (!dateString) {
     return "Unknown";
@@ -73,11 +84,12 @@ function formatTimestamp(dateString) {
   }).format(new Date(dateString));
 }
 
-function formatPrice(value) {
+function formatPrice(value, currency = "") {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "--";
   }
-  return `${value.toFixed(2)} €`;
+
+  return `${value.toFixed(2)}${currency ? ` ${currency}` : ""}`;
 }
 
 function formatPercent(value) {
@@ -88,15 +100,7 @@ function formatPercent(value) {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function iconButton({ icon, label, href, dataset = "" }) {
-  if (href) {
-    return `
-      <a class="icon-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
-        ${renderIcon(icon)}
-      </a>
-    `;
-  }
-
+function iconButton({ icon, label, dataset = "" }) {
   return `
     <button class="icon-button" type="button" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${dataset}>
       ${renderIcon(icon)}
@@ -104,36 +108,219 @@ function iconButton({ icon, label, href, dataset = "" }) {
   `;
 }
 
-function renderEmptyState(message) {
+function renderDurationSelector(selected) {
   return `
-    <div class="module-card">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Market Data</p>
-          <h2>Stock Ticker</h2>
-        </div>
-      </div>
-      <section class="status-note empty-state">
-        <p>${escapeHtml(message)}</p>
-      </section>
+    <div class="ticker-duration-selector" role="tablist" aria-label="Duration">
+      ${DURATION_OPTIONS.map(
+        (option) => `
+          <button
+            class="ticker-duration-option ${option.value === selected ? "active" : ""}"
+            type="button"
+            data-duration="${escapeHtml(option.value)}"
+            aria-pressed="${option.value === selected ? "true" : "false"}"
+          >
+            ${escapeHtml(option.label)}
+          </button>
+        `,
+      ).join("")}
     </div>
   `;
 }
 
-function renderDurationSelector(selected) {
-  return DURATION_OPTIONS.map(opt => `
-    <button 
-      class="duration-btn ${opt.value === selected ? 'active' : ''}" 
-      data-duration="${escapeHtml(opt.value)}"
-      type="button"
-    >
-      ${escapeHtml(opt.label)}
-    </button>
-  `).join("");
+function renderSearchBar(state) {
+  return `
+    <section class="ticker-toolbar">
+      <div class="ticker-search-shell">
+        <label class="ticker-search-label" for="ticker-symbol-input">Ticker</label>
+        <div class="ticker-search-row">
+          <input
+            id="ticker-symbol-input"
+            type="text"
+            class="ticker-input"
+            placeholder="AAPL, MSFT, ^FCHI, SPY, BTC-USD..."
+            value="${escapeHtml(state.inputValue)}"
+            data-ticker-input
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button type="button" class="ticker-submit-button" data-action="search-ticker">
+            Search
+          </button>
+        </div>
+      </div>
+      ${renderDurationSelector(state.duration)}
+    </section>
+  `;
+}
+
+function renderStatusBanner(state) {
+  if (state.error) {
+    return `
+      <section class="status-note warning-note ticker-status-banner">
+        <p>${escapeHtml(state.error)}</p>
+      </section>
+    `;
+  }
+
+  if (state.isLoading && state.ticker) {
+    return `
+      <section class="status-note ticker-status-banner">
+        <p>Chargement de ${escapeHtml(state.ticker)} sur ${escapeHtml(state.duration.toUpperCase())}...</p>
+      </section>
+    `;
+  }
+
+  if (!state.ticker) {
+    return `
+      <section class="status-note empty-state ticker-status-banner">
+        <p>Recherchez un ticker pour afficher son historique, ses variations et ses infos de base.</p>
+      </section>
+    `;
+  }
+
+  return "";
+}
+
+function renderMetrics(payload) {
+  const info = payload?.data?.info || {};
+  const history = payload?.data?.history || [];
+  const lastPrice = history.at(-1) || {};
+  const firstPrice = history[0] || {};
+  const changePercent =
+    typeof lastPrice.Close === "number" && typeof firstPrice.Close === "number" && firstPrice.Close !== 0
+      ? ((lastPrice.Close - firstPrice.Close) / firstPrice.Close) * 100
+      : Number.NaN;
+  const changeClass = changePercent >= 0 ? "positive" : "negative";
+  const currency = info.currency || "";
+
+  return `
+    <section class="rate-strip">
+      <article class="rate-chip rate-chip-meta">
+        <span>Actif</span>
+        <strong>${escapeHtml(formatAssetType(info.quoteType))}</strong>
+      </article>
+      <article class="rate-chip">
+        <span>Prix actuel</span>
+        <strong>${escapeHtml(formatPrice(lastPrice.Close, currency))}</strong>
+      </article>
+      <article class="rate-chip">
+        <span>Variation</span>
+        <strong class="${changeClass}">${escapeHtml(formatPercent(changePercent))}</strong>
+      </article>
+      <article class="rate-chip">
+        <span>Ouverture</span>
+        <strong>${escapeHtml(formatPrice(lastPrice.Open, currency))}</strong>
+      </article>
+      <article class="rate-chip">
+        <span>Haut / Bas</span>
+        <strong>${escapeHtml(formatPrice(lastPrice.High, currency))} / ${escapeHtml(formatPrice(lastPrice.Low, currency))}</strong>
+      </article>
+      <article class="rate-chip rate-chip-meta">
+        <span>Source</span>
+        <strong>${escapeHtml(payload.servedFrom ?? "unknown")} · ${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</strong>
+      </article>
+    </section>
+  `;
+}
+
+function renderTickerBody(state) {
+  if (!state.payload?.data) {
+    return "";
+  }
+
+  const payload = state.payload;
+  const info = payload.data.info || {};
+  const history = payload.data.history || [];
+
+  return `
+    ${renderMetrics(payload)}
+
+    <section class="chart-shell">
+      <div class="chart-header">
+        <div>
+          <p class="eyebrow">${escapeHtml(state.ticker)}</p>
+          <h3>${escapeHtml(info.longName || state.ticker)}</h3>
+        </div>
+        <div class="inline-actions">
+          <span class="bank-pill">${escapeHtml(formatAssetType(info.quoteType))}</span>
+        </div>
+      </div>
+      <div class="chart-placeholder ticker-chart" data-ticker-chart></div>
+    </section>
+
+    ${
+      info.longBusinessSummary
+        ? `
+          <section class="compact-section ticker-summary-section">
+            <div class="section-head">
+              <p class="eyebrow">Company</p>
+              <h3>À propos</h3>
+            </div>
+            <p class="ticker-description">${escapeHtml(info.longBusinessSummary.substring(0, 520))}...</p>
+          </section>
+        `
+        : ""
+    }
+
+    ${
+      !history.length
+        ? `
+          <section class="status-note empty-state ticker-status-banner">
+            <p>Aucune donnée historique disponible pour ce ticker sur cette période.</p>
+          </section>
+        `
+        : ""
+    }
+  `;
+}
+
+function formatAssetType(value) {
+  const normalized = String(value || "").toUpperCase();
+  if (normalized === "ETF") {
+    return "ETF";
+  }
+  if (normalized === "INDEX") {
+    return "Index";
+  }
+  if (normalized === "CRYPTOCURRENCY") {
+    return "Crypto";
+  }
+  if (normalized === "EQUITY") {
+    return "Stock";
+  }
+  if (normalized === "MUTUALFUND") {
+    return "Fund";
+  }
+  return normalized ? normalized.charAt(0) + normalized.slice(1).toLowerCase() : "Unknown";
+}
+
+function renderTickerView(container) {
+  const state = getTickerState(container);
+  const title = state.payload?.data?.info?.longName || state.ticker || "Stock Ticker";
+
+  container.innerHTML = `
+    <div class="module-card ticker-module-card">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Market Data</p>
+          <h2>${escapeHtml(title)}</h2>
+        </div>
+        ${iconButton({
+          icon: "refreshCw",
+          label: "Actualiser les données du ticker",
+          dataset: 'data-action="refresh-ticker"',
+        })}
+      </div>
+
+      ${renderSearchBar(state)}
+      ${renderStatusBanner(state)}
+      ${renderTickerBody(state)}
+    </div>
+  `;
 }
 
 function mountChart(container, historyData) {
-  if (!historyData || !historyData.length) {
+  if (!historyData?.length) {
     container.innerHTML = `
       <div class="chart-fallback">
         <strong>Données indisponibles</strong>
@@ -179,13 +366,15 @@ function mountChart(container, historyData) {
         wickDownColor: "#ef4444",
       });
 
-      const chartData = historyData.map(point => ({
-        time: point.Date ? point.Date.split('T')[0] : null,
-        open: point.Open,
-        high: point.High,
-        low: point.Low,
-        close: point.Close,
-      })).filter(p => p.time);
+      const chartData = historyData
+        .map((point) => ({
+          time: point.Date ? point.Date.split("T")[0] : null,
+          open: point.Open,
+          high: point.High,
+          low: point.Low,
+          close: point.Close,
+        }))
+        .filter((point) => point.time);
 
       candlestickSeries.setData(chartData);
       chart.timeScale().fitContent();
@@ -200,215 +389,133 @@ function mountChart(container, historyData) {
     });
 }
 
-async function loadTickerData(container, refresh = false) {
-
-  if (!currentTicker) {
-    // Empty initial state: only search bar
-    container.innerHTML = `
-      <div class="module-card">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Market Data</p>
-            <h2>Stock Ticker</h2>
-          </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Actualiser",
-            dataset: 'data-action="refresh-ticker"',
-          })}
-        </div>
-
-        <section class="ticker-search-bar">
-          <div class="search-input-group">
-            <input 
-              type="text" 
-              class="ticker-input" 
-              placeholder="Entrer un ticker (ex: AAPL, MSFT, TSLA)" 
-              data-ticker-input
-              autofocus
-            >
-            <button type="button" class="search-ticker-btn" data-action="search-ticker">Chercher</button>
-          </div>
-          
-          <div class="duration-selector">
-            ${renderDurationSelector(currentDuration)}
-          </div>
-        </section>
-
-        <section class="status-note empty-state">
-          <p>Recherchez un ticker pour afficher les données et le graphique historique</p>
-        </section>
-      </div>
-    `;
-
-    // Attach base listeners
-    attachBaseListeners(container);
+async function fetchTickerData(container, { refresh = false } = {}) {
+  const state = getTickerState(container);
+  if (!state.ticker) {
+    renderTickerView(container);
     return;
   }
 
-  container.innerHTML = renderEmptyState(refresh ? "Actualisation en cours..." : "Chargement des données...");
+  state.isLoading = true;
+  state.error = "";
+  const requestId = state.requestId + 1;
+  state.requestId = requestId;
+  renderTickerView(container);
 
   try {
-    const payload = await window.financeDesktop.getTickerData({ 
-      ticker: currentTicker, 
-      duration: currentDuration,
-      refresh 
+    const payload = await window.financeDesktop.getTickerData({
+      ticker: state.ticker,
+      duration: state.duration,
+      refresh,
     });
 
-    const info = payload.data?.info || {};
-    const history = payload.data?.history || [];
-    const lastPrice = history.length ? history[history.length - 1] : {};
-    const firstPrice = history.length ? history[0] : {};
-    
-    const changePercent = lastPrice.Close && firstPrice.Close 
-      ? ((lastPrice.Close - firstPrice.Close) / firstPrice.Close * 100) 
-      : 0;
-    const changeClass = changePercent >= 0 ? "positive" : "negative";
-
-    container.innerHTML = `
-      <div class="module-card">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Market Data</p>
-            <h2>${escapeHtml(info.longName || currentTicker)}</h2>
-          </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Actualiser",
-            dataset: 'data-action="refresh-ticker"',
-          })}
-        </div>
-
-        <section class="ticker-search-bar">
-          <div class="search-input-group">
-            <input 
-              type="text" 
-              class="ticker-input" 
-              placeholder="Entrer un ticker (ex: AAPL, MSFT, TSLA)" 
-              value="${escapeHtml(currentTicker)}"
-              data-ticker-input
-            >
-            <button type="button" class="search-ticker-btn" data-action="search-ticker">Chercher</button>
-          </div>
-          
-          <div class="duration-selector">
-            ${renderDurationSelector(currentDuration)}
-          </div>
-        </section>
-
-        <section class="rate-strip">
-          <article class="rate-chip">
-            <span>Prix actuel</span>
-            <strong>${escapeHtml(formatPrice(lastPrice.Close))}</strong>
-          </article>
-          <article class="rate-chip">
-            <span>Variation</span>
-            <strong class="${changeClass}">${escapeHtml(formatPercent(changePercent))}</strong>
-          </article>
-          <article class="rate-chip">
-            <span>Ouverture</span>
-            <strong>${escapeHtml(formatPrice(lastPrice.Open))}</strong>
-          </article>
-          <article class="rate-chip">
-            <span>Haut / Bas</span>
-            <strong>${escapeHtml(formatPrice(lastPrice.High))} / ${escapeHtml(formatPrice(lastPrice.Low))}</strong>
-          </article>
-          <article class="rate-chip rate-chip-meta">
-            <span>Source</span>
-            <strong>${escapeHtml(payload.servedFrom ?? "unknown")} · ${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</strong>
-          </article>
-        </section>
-
-        <section class="chart-shell">
-          <div class="chart-header">
-            <div>
-              <p class="eyebrow">${escapeHtml(currentTicker)}</p>
-              <h3>Cours historique</h3>
-            </div>
-          </div>
-          <div class="chart-placeholder ticker-chart" data-ticker-chart></div>
-        </section>
-
-        ${info.longBusinessSummary ? `
-        <section class="compact-section">
-          <div class="section-head">
-            <p class="eyebrow">Informations</p>
-            <h3>À propos</h3>
-          </div>
-          <p class="ticker-description">${escapeHtml(info.longBusinessSummary.substring(0, 500))}...</p>
-        </section>
-        ` : ''}
-
-      </div>
-    `;
-
-    // Attach event listeners
-    container.querySelector("[data-action=\"refresh-ticker\"]")?.addEventListener("click", () => {
-      loadTickerData(container, true);
-    });
-
-    container.querySelector("[data-action=\"search-ticker\"]")?.addEventListener("click", () => {
-      const input = container.querySelector("[data-ticker-input]");
-      if (input && input.value.trim()) {
-        currentTicker = input.value.trim().toUpperCase();
-        loadTickerData(container, false);
-      }
-    });
-
-    container.querySelector("[data-ticker-input]")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        currentTicker = e.target.value.trim().toUpperCase();
-        loadTickerData(container, false);
-      }
-    });
-
-    container.querySelectorAll("[data-duration]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentDuration = btn.dataset.duration;
-        loadTickerData(container, false);
-      });
-    });
-
-    const chartContainer = container.querySelector("[data-ticker-chart]");
-    if (chartContainer) {
-      await mountChart(chartContainer, history);
+    if (requestId !== state.requestId) {
+      return;
     }
 
+    state.payload = payload;
+    state.error = "";
   } catch (error) {
-    container.innerHTML = renderEmptyState(error.message || "Impossible de charger les données du ticker.");
+    if (requestId !== state.requestId) {
+      return;
+    }
+
+    state.error = error?.message || "Impossible de charger les données du ticker.";
+  } finally {
+    if (requestId !== state.requestId) {
+      return;
+    }
+
+    state.isLoading = false;
+    renderTickerView(container);
+
+    const chartContainer = container.querySelector("[data-ticker-chart]");
+    const history = state.payload?.data?.history || [];
+    if (chartContainer && history.length) {
+      await mountChart(chartContainer, history);
+    }
   }
 }
 
-function attachBaseListeners(container) {
-  container.querySelector("[data-action=\"search-ticker\"]")?.addEventListener("click", () => {
-    const input = container.querySelector("[data-ticker-input]");
-    if (input && input.value.trim()) {
-      currentTicker = input.value.trim().toUpperCase();
-      loadTickerData(container, false);
+function submitTickerSearch(container) {
+  const state = getTickerState(container);
+  const nextTicker = state.inputValue.trim().toUpperCase();
+  if (!nextTicker) {
+    state.error = "Entrez un ticker valide avant de lancer la recherche.";
+    renderTickerView(container);
+    return;
+  }
+
+  if (nextTicker === state.ticker && state.payload) {
+    fetchTickerData(container, { refresh: true });
+    return;
+  }
+
+  state.ticker = nextTicker;
+  state.inputValue = nextTicker;
+  state.payload = null;
+  fetchTickerData(container);
+}
+
+function attachTickerListeners(container) {
+  if (container.dataset.tickerListenersBound === "true") {
+    return;
+  }
+
+  container.dataset.tickerListenersBound = "true";
+
+  container.addEventListener("input", (event) => {
+    if (!event.target.matches("[data-ticker-input]")) {
+      return;
+    }
+    getTickerState(container).inputValue = event.target.value;
+  });
+
+  container.addEventListener("keydown", (event) => {
+    if (event.target.matches("[data-ticker-input]") && event.key === "Enter") {
+      event.preventDefault();
+      submitTickerSearch(container);
     }
   });
 
-  container.querySelector("[data-ticker-input]")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      currentTicker = e.target.value.trim().toUpperCase();
-      loadTickerData(container, false);
+  container.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) {
+      return;
     }
-  });
 
-  container.querySelectorAll("[data-duration]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      currentDuration = btn.dataset.duration;
-      if (currentTicker) {
-        loadTickerData(container, false);
-      } else {
-        loadTickerData(container, false);
+    if (button.matches("[data-action='search-ticker']")) {
+      submitTickerSearch(container);
+      return;
+    }
+
+    if (button.matches("[data-action='refresh-ticker']")) {
+      const state = getTickerState(container);
+      if (state.ticker) {
+        fetchTickerData(container, { refresh: true });
       }
-    });
+      return;
+    }
+
+    if (button.matches("[data-duration]")) {
+      const state = getTickerState(container);
+      const nextDuration = button.getAttribute("data-duration");
+      if (!nextDuration || nextDuration === state.duration) {
+        return;
+      }
+
+      state.duration = nextDuration;
+      renderTickerView(container);
+      if (state.ticker) {
+        fetchTickerData(container);
+      }
+    }
   });
 }
 
 export function renderTickerModule(container) {
-  currentTicker = null;
-  addStyleSheet("ticker-styles.css", "ticker")
-  loadTickerData(container);
+  addStyleSheet(TICKER_STYLESHEET_PATH, TICKER_STYLESHEET_ID);
+  getTickerState(container);
+  attachTickerListeners(container);
+  renderTickerView(container);
 }

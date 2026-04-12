@@ -355,6 +355,14 @@ textarea {
   border-top-right-radius: var(--radius);
 }
 
+.widget-tabs .widget-tab-undock-button {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
 .widget-tab {
   border: 1px solid transparent;
   border-top-left-radius: 8px;
