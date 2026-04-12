@@ -45,7 +45,7 @@ export const widgetCatalog = [
     categoryId: "macro",
     categoryLabel: "Macro reelle",
     description: "NFP, unemployment and JOLTS labor market indicators.",
-    implemented: false,
+    implemented: true,
   },
   {
     id: "growth",
@@ -53,7 +53,7 @@ export const widgetCatalog = [
     categoryId: "macro",
     categoryLabel: "Macro reelle",
     description: "GDP, ISM and PMIs to monitor the cycle.",
-    implemented: false,
+    implemented: true,
   },
   {
     id: "surpriseIndex",
