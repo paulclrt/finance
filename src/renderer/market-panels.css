@@ -43,6 +43,59 @@
   background: #e2e8f0;
 }
 
+.market-logo-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.logo-flag {
+  overflow: hidden;
+  padding: 0;
+}
+
+.logo-pair {
+  min-width: 36px;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.market-flag-pair {
+  display: inline-flex;
+  align-items: center;
+}
+
+.market-flag-pair img {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.market-flag-pair img + img {
+  margin-left: -6px;
+}
+
+.logo-icon {
+  overflow: hidden;
+  padding: 0;
+  background: #f8fafc;
+}
+
+.logo-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.market-commodity-text {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
 .logo-dxy {
   background: #dbeafe;
   color: #1d4ed8;

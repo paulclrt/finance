@@ -1,4 +1,5 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
 import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
@@ -110,7 +111,7 @@ function renderPresetBar(config, state) {
               data-market-symbol="${escapeHtml(preset.symbol)}"
               title="${escapeHtml(preset.label)}"
             >
-              <span class="market-logo-badge ${escapeHtml(preset.logoClass || "")}">${escapeHtml(preset.logo)}</span>
+              <span class="market-logo-badge ${escapeHtml(preset.logoClass || "")}">${preset.logoHtml || escapeHtml(preset.logo || "")}</span>
               <span>${escapeHtml(preset.label)}</span>
             </button>
           `,
@@ -216,10 +217,6 @@ function renderMetrics(payload) {
         <span>High / Low</span>
         <strong>${escapeHtml(formatPrice(lastPrice.High, currency))} / ${escapeHtml(formatPrice(lastPrice.Low, currency))}</strong>
       </article>
-      <article class="rate-chip rate-chip-meta">
-        <span>Source</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")} · ${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</strong>
-      </article>
     </section>
   `;
 }
@@ -260,6 +257,7 @@ function renderView(config, container) {
           <h2>${escapeHtml(title)}</h2>
         </div>
         <div class="inline-actions">
+          ${state.payload ? renderSourceIndicator(state.payload.servedFrom, formatTimestamp(state.payload.lastSuccessfulRefresh)) : ""}
           ${iconButton({
             icon: "refreshCw",
             label: `Refresh ${config.title.toLowerCase()} data`,

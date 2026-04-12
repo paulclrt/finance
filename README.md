@@ -2,7 +2,7 @@
 
 Squelette local d'application Electron pour un dashboard finance/quant modulaire.
 
-![./docs/images/finlab.png](./docs/images/finlab.png)
+![./docs/images/finlab.png](./docs/images/finlab2.png)
 
 
 ## Prerequisites
