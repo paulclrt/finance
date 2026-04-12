@@ -1,6 +1,6 @@
 const path = require("node:path");
 const fs = require("node:fs");
-const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 
 app.commandLine.appendSwitch("no-sandbox");
@@ -42,6 +42,14 @@ function resolveGrowthDbPath() {
   return path.join(app.getPath("userData"), "data", "growth.sqlite3");
 }
 
+function resolveMarketMapDbPath() {
+  return path.join(app.getPath("userData"), "data", "market-map.sqlite3");
+}
+
+function resolveMapsDirectory() {
+  return path.join(app.getPath("userData"), "maps");
+}
+
 function resolveConfigPath() {
   return path.join(app.getPath("userData"), "config", "app-state.xml");
 }
@@ -49,6 +57,36 @@ function resolveConfigPath() {
 let appConfigState = null;
 let configWriteTimer = null;
 let configWritePromise = null;
+let mapWindowRef = null;
+
+const SAMPLE_MAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<map title="US Mega Caps">
+  <group label="Technology">
+    <ticker symbol="AAPL" label="Apple" />
+    <ticker symbol="MSFT" label="Microsoft" />
+    <ticker symbol="NVDA" label="NVIDIA" />
+    <ticker symbol="GOOGL" label="Alphabet" />
+    <ticker symbol="META" label="Meta" />
+  </group>
+  <group label="Consumer">
+    <ticker symbol="AMZN" label="Amazon" />
+    <ticker symbol="TSLA" label="Tesla" />
+    <ticker symbol="WMT" label="Walmart" />
+    <ticker symbol="COST" label="Costco" />
+  </group>
+  <group label="Finance">
+    <ticker symbol="JPM" label="JPMorgan" />
+    <ticker symbol="BAC" label="Bank of America" />
+    <ticker symbol="V" label="Visa" />
+    <ticker symbol="MA" label="Mastercard" />
+  </group>
+  <group label="Healthcare">
+    <ticker symbol="LLY" label="Eli Lilly" />
+    <ticker symbol="JNJ" label="Johnson &amp; Johnson" />
+    <ticker symbol="UNH" label="UnitedHealth" />
+  </group>
+</map>
+`;
 
 const WIDGET_MENU_GROUPS = [
   {
@@ -308,6 +346,34 @@ function ensureAppConfigFile() {
   }
 }
 
+function ensureMapsDirectory() {
+  const mapsDirectory = resolveMapsDirectory();
+  fs.mkdirSync(mapsDirectory, { recursive: true });
+  const samplePath = path.join(mapsDirectory, "us-mega-caps.xml");
+  if (!fs.existsSync(samplePath)) {
+    fs.writeFileSync(samplePath, SAMPLE_MAP_XML, "utf8");
+  }
+}
+
+function listMapConfigFiles() {
+  ensureMapsDirectory();
+  return fs
+    .readdirSync(resolveMapsDirectory(), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".xml"))
+    .map((entry) => {
+      const fullPath = path.join(resolveMapsDirectory(), entry.name);
+      const xml = fs.readFileSync(fullPath, "utf8");
+      const titleMatch = xml.match(/<map[^>]+(?:title|name)="([^"]+)"/i);
+      return {
+        id: entry.name,
+        fileName: entry.name,
+        title: titleMatch?.[1] || entry.name.replace(/\.xml$/i, ""),
+        path: fullPath,
+      };
+    })
+    .sort((left, right) => left.fileName.localeCompare(right.fileName));
+}
+
 function parseEnabledWidgetIds(config = readAppConfig()) {
   const allowed = new Set(WIDGET_MENU_GROUPS.flatMap((group) => group.items.map((item) => item.id)));
   const rawEnabled = config?.widgets?.enabled;
@@ -469,6 +535,35 @@ function resetAppLayout(mainWindow) {
   broadcastAppConfig(mainWindow);
 }
 
+function openMapWindow() {
+  if (mapWindowRef && !mapWindowRef.isDestroyed()) {
+    mapWindowRef.focus();
+    return mapWindowRef;
+  }
+
+  mapWindowRef = new BrowserWindow({
+    width: 1380,
+    height: 920,
+    minWidth: 980,
+    minHeight: 640,
+    backgroundColor: "#f3f5f7",
+    autoHideMenuBar: false,
+    title: "Market Map",
+    webPreferences: {
+      preload: path.join(__dirname, "..", "preload", "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mapWindowRef.on("closed", () => {
+    mapWindowRef = null;
+  });
+
+  mapWindowRef.loadFile(path.join(__dirname, "..", "renderer", "map.html"));
+  return mapWindowRef;
+}
+
 function buildAppMenu(mainWindow) {
   const template = [];
   const enabledWidgetIds = parseEnabledWidgetIds();
@@ -509,18 +604,27 @@ function buildAppMenu(mainWindow) {
 
   template.push({
     label: "Windows",
-    submenu: WIDGET_MENU_GROUPS.map((group) => ({
-      label: group.label,
-      submenu: group.items.map((item) => ({
-        label: item.title,
-        type: "checkbox",
-        checked: enabledWidgetIds.includes(item.id),
-        toolTip: item.description,
-        click: (menuItem) => {
-          toggleWidgetInMenu(mainWindow, item.id, menuItem.checked);
-        },
+    submenu: [
+      ...WIDGET_MENU_GROUPS.map((group) => ({
+        label: group.label,
+        submenu: group.items.map((item) => ({
+          label: item.title,
+          type: "checkbox",
+          checked: enabledWidgetIds.includes(item.id),
+          toolTip: item.description,
+          click: (menuItem) => {
+            toggleWidgetInMenu(mainWindow, item.id, menuItem.checked);
+          },
+        })),
       })),
-    })),
+      { type: "separator" },
+      {
+        label: "Open Map Window",
+        click: () => {
+          openMapWindow();
+        },
+      },
+    ],
   });
 
   template.push({
@@ -894,10 +998,77 @@ ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
   return fs.existsSync(sourceFile);
 });
 
+ipcMain.handle("maps:list-configs", async () => {
+  return listMapConfigFiles().map(({ id, fileName, title }) => ({ id, fileName, title }));
+});
+
+ipcMain.handle("maps:import-config", async () => {
+  ensureMapsDirectory();
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "XML files", extensions: ["xml"] }],
+  });
+
+  if (result.canceled || !result.filePaths?.length) {
+    return { imported: false };
+  }
+
+  const sourcePath = result.filePaths[0];
+  const baseName = path.basename(sourcePath);
+  let targetName = baseName;
+  let targetPath = path.join(resolveMapsDirectory(), targetName);
+  let suffix = 1;
+  while (fs.existsSync(targetPath)) {
+    targetName = `${baseName.replace(/\.xml$/i, "")}-${suffix}.xml`;
+    targetPath = path.join(resolveMapsDirectory(), targetName);
+    suffix += 1;
+  }
+
+  fs.copyFileSync(sourcePath, targetPath);
+  return { imported: true, fileName: targetName };
+});
+
+ipcMain.handle("maps:get-data", async (_event, options = {}) => {
+  const fileName = String(options?.fileName || "").trim();
+  if (!fileName) {
+    throw new Error("Map config file is required.");
+  }
+
+  const availableMaps = listMapConfigFiles();
+  const selected = availableMaps.find((item) => item.fileName === fileName || item.id === fileName);
+  if (!selected) {
+    throw new Error(`Map config '${fileName}' was not found.`);
+  }
+
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-market-map-data.py");
+  const dbPath = resolveMarketMapDbPath();
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [
+    ...prefixArgs,
+    scriptPath,
+    "--db",
+    dbPath,
+    "--config",
+    selected.path,
+    "--duration",
+    String(options?.duration || "6mo"),
+  ];
+  if (options?.refresh) {
+    args.push("--refresh");
+  }
+
+  const result = await runProcess(command, args, app.getAppPath());
+  return JSON.parse(result.stdout);
+});
+
 
 
 app.whenReady().then(() => {
   ensureAppConfigFile();
+  ensureMapsDirectory();
   createMainWindow();
 
   app.on("activate", () => {

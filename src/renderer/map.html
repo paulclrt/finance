@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Market Map</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./market-panels.css" />
+    <link rel="stylesheet" href="./map.css" />
+  </head>
+  <body>
+    <div class="map-window-shell">
+      <aside class="map-sidebar">
+        <div class="map-sidebar-head">
+          <div>
+            <p class="eyebrow">Detached Window</p>
+            <h1>Maps</h1>
+          </div>
+          <button class="button" type="button" data-map-action="import">Load XML</button>
+        </div>
+        <div class="map-sidebar-controls">
+          <div>
+            <p class="eyebrow">Selected Map</p>
+            <h2 data-map-title>Market map</h2>
+          </div>
+          <div class="map-toolbar-actions">
+            <div class="market-duration-selector" data-map-duration-selector></div>
+            <button class="icon-button" type="button" data-map-action="refresh" title="Refresh map data" aria-label="Refresh map data">↻</button>
+          </div>
+        </div>
+        <div class="map-config-list" data-map-config-list></div>
+      </aside>
+
+      <main class="map-main">
+        <section class="status-note map-status" data-map-status></section>
+        <section class="map-canvas" data-map-canvas></section>
+      </main>
+    </div>
+
+    <script type="module" src="./map.js"></script>
+  </body>
+  </html>
