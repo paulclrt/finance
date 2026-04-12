@@ -85,7 +85,7 @@ export const widgetCatalog = [
     categoryId: "markets",
     categoryLabel: "Marches financiers",
     description: "DXY, EUR/USD and USD/JPY foreign-exchange monitor.",
-    implemented: false,
+    implemented: true,
   },
   {
     id: "commodities",
@@ -93,7 +93,7 @@ export const widgetCatalog = [
     categoryId: "markets",
     categoryLabel: "Marches financiers",
     description: "WTI, Brent, Gold and Copper as global macro barometers.",
-    implemented: false,
+    implemented: true,
   },
   {
     id: "creditSpreads",

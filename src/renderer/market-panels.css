@@ -1,0 +1,151 @@
+.market-panel-card {
+  gap: 12px;
+}
+
+.market-preset-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.market-preset-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.market-preset-chip.active {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.market-logo-badge {
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.logo-dxy {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.logo-eur {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.logo-jpy {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.logo-gbp {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.logo-chf {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.logo-oil {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.logo-brent {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.logo-gold {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.logo-copper {
+  background: #fed7aa;
+  color: #c2410c;
+}
+
+.logo-silver {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.logo-gas {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.market-search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.market-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.market-input {
+  flex: 1 1 auto;
+}
+
+.market-duration-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
+.market-duration-option {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.market-duration-option.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.market-panel-chart {
+  min-height: 280px;
+}
+
+@media (max-width: 720px) {
+  .market-search-row {
+    flex-direction: column;
+  }
+}
