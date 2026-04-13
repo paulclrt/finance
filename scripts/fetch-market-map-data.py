@@ -8,6 +8,7 @@ import sys
 import xml.etree.ElementTree as ET
 import zlib
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import yfinance as yf
@@ -26,7 +27,7 @@ def utc_now_iso():
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", required=True)
-    parser.add_argument("--config", required=True)
+    parser.add_argument("--config", required=True, help="path to the xml file containing tickers")
     parser.add_argument("--duration", default="5d")
     parser.add_argument("--refresh", action="store_true")
     return parser.parse_args()
@@ -183,34 +184,23 @@ def fetch_symbol_payload(symbol, history):
     }
 
 
-def resolve_symbol_payload(conn, symbol, duration, batch_history=None, refresh=False):
+def get_cache_status(conn, symbol, duration, refresh):
     cached = load_cached_symbol(conn, symbol)
+
     if cached and not refresh and is_cache_fresh(cached["fetchedAt"]):
         payload = cached["payload"]
         if payload.get("duration") == duration:
             payload["servedFrom"] = "cache"
             payload["lastSuccessfulRefresh"] = cached["lastSuccessfulRefresh"]
-            return payload
+            return "hit", payload, cached
 
-    try:
-        history = []
-        if batch_history and symbol in batch_history:
-            history = batch_history[symbol]
-        payload = fetch_symbol_payload(symbol, history)
-        payload["duration"] = duration
-        refreshed_at = store_cached_symbol(conn, symbol, payload)
-        payload["servedFrom"] = "remote"
-        payload["lastSuccessfulRefresh"] = refreshed_at
-        return payload
-    except Exception as exc:
-        if cached and cached["payload"].get("duration") == duration:
-            payload = cached["payload"]
-            payload["servedFrom"] = "stale-cache"
-            payload["lastSuccessfulRefresh"] = cached["lastSuccessfulRefresh"]
-            payload["warning"] = f"Using cached data after refresh failure: {exc}"
-            return payload
-        raise
+    return "miss", None, cached
 
+def fetch_payload(symbol, duration, batch_history):
+    history = batch_history.get(symbol, []) if batch_history else []
+    payload = fetch_symbol_payload(symbol, history)
+    payload["duration"] = duration
+    return payload
 
 def fetch_histories_batch(symbols, duration):
     if not symbols:
@@ -295,11 +285,51 @@ def main():
     with sqlite3.connect(db_path) as conn:
         ensure_schema(conn)
         batch_history = fetch_histories_batch(symbols, args.duration)
-        symbol_payloads = {
-            symbol: resolve_symbol_payload(conn, symbol, args.duration, batch_history=batch_history, refresh=args.refresh)
-            for symbol in symbols
-        }
 
+        cache_results = {}
+        to_fetch = []
+
+        for symbol in symbols:
+            status, payload, cached = get_cache_status(
+                conn, symbol, args.duration, args.refresh
+            )
+
+            if status == "hit":
+                cache_results[symbol] = payload
+            else:
+                to_fetch.append((symbol, cached))
+
+    def worker(symbol):
+        try:
+            payload = fetch_payload(symbol, args.duration, batch_history)
+            return symbol, payload, None
+        except Exception as e:
+            return symbol, None, e
+
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(lambda x: worker(x[0]), to_fetch))
+
+    symbol_payloads = dict(cache_results)
+
+    with sqlite3.connect(db_path) as conn:
+        for (symbol, cached), (_, payload, error) in zip(to_fetch, results):
+
+            if payload is not None:
+                refreshed_at = store_cached_symbol(conn, symbol, payload)
+                payload["servedFrom"] = "remote"
+                payload["lastSuccessfulRefresh"] = refreshed_at
+                symbol_payloads[symbol] = payload
+
+            else:
+                if cached and cached["payload"].get("duration") == args.duration:
+                    payload = cached["payload"]
+                    payload["servedFrom"] = "stale-cache"
+                    payload["lastSuccessfulRefresh"] = cached["lastSuccessfulRefresh"]
+                    payload["warning"] = f"Using cached data after refresh failure: {error}"
+                    symbol_payloads[symbol] = payload
+                else:
+                    raise error
     tree = build_enriched_tree(parsed["tree"], symbol_payloads, args.duration)
     sources = sorted(set(payload.get("servedFrom", "unknown") for payload in symbol_payloads.values()))
 
