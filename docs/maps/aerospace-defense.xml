@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Aerospace &amp; Defense">
+  <group label="Prime Contractors">
+    <ticker symbol="LMT" label="Lockheed Martin" />
+    <ticker symbol="RTX" label="RTX Corp" />
+    <ticker symbol="NOC" label="Northrop Grumman" />
+    <ticker symbol="GD" label="General Dynamics" />
+    <ticker symbol="BA" label="Boeing" />
+  </group>
+  <group label="Defense Electronics">
+    <ticker symbol="L3H" label="L3Harris" />
+    <ticker symbol="LDOS" label="Leidos" />
+    <ticker symbol="SAIC" label="SAIC" />
+    <ticker symbol="BAH" label="Booz Allen" />
+  </group>
+  <group label="Space &amp; Satellites">
+    <ticker symbol="SPCE" label="Virgin Galactic" />
+    <ticker symbol="RKLB" label="Rocket Lab" />
+    <ticker symbol="ASTS" label="AST SpaceMobile" />
+    <ticker symbol="VSAT" label="Viasat" />
+  </group>
+  <group label="Commercial Aviation">
+    <ticker symbol="BA" label="Boeing" />
+    <ticker symbol="AIR" label="Airbus" />
+    <ticker symbol="GE" label="GE Aerospace" />
+    <ticker symbol="HWM" label="Howmet Aerospace" />
+    <ticker symbol="TDG" label="TransDigm" />
+  </group>
+</map>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Macro &amp; Cross-Asset ETFs">
+  <group label="Equities Broad">
+    <ticker symbol="SPY" label="S&amp;P 500" />
+    <ticker symbol="QQQ" label="Nasdaq 100" />
+    <ticker symbol="IWM" label="Russell 2000" />
+    <ticker symbol="VEA" label="Developed ex-US" />
+    <ticker symbol="EEM" label="Emerging Markets" />
+    <ticker symbol="ACWI" label="World All Cap" />
+  </group>
+  <group label="Sectors US (SPDR)">
+    <ticker symbol="XLK" label="Technology" />
+    <ticker symbol="XLF" label="Financials" />
+    <ticker symbol="XLE" label="Energy" />
+    <ticker symbol="XLV" label="Healthcare" />
+    <ticker symbol="XLI" label="Industrials" />
+    <ticker symbol="XLY" label="Consumer Discr." />
+    <ticker symbol="XLP" label="Consumer Staples" />
+    <ticker symbol="XLRE" label="Real Estate" />
+    <ticker symbol="XLB" label="Materials" />
+    <ticker symbol="XLU" label="Utilities" />
+    <ticker symbol="XLC" label="Comm. Services" />
+  </group>
+  <group label="Fixed Income">
+    <ticker symbol="TLT" label="Long Treasuries" />
+    <ticker symbol="IEF" label="Mid Treasuries" />
+    <ticker symbol="LQD" label="Corp IG" />
+    <ticker symbol="HYG" label="High Yield" />
+    <ticker symbol="TIP" label="TIPS" />
+    <ticker symbol="EMB" label="EM Bonds" />
+  </group>
+  <group label="Commodities &amp; Real Assets">
+    <ticker symbol="GLD" label="Gold" />
+    <ticker symbol="SLV" label="Silver" />
+    <ticker symbol="USO" label="Oil" />
+    <ticker symbol="DBA" label="Agriculture" />
+    <ticker symbol="PDBC" label="Commodities Broad" />
+  </group>
+  <group label="Volatility &amp; Hedges">
+    <ticker symbol="VIXY" label="VIX Short-Term" />
+    <ticker symbol="UVXY" label="VIX 1.5x" />
+    <ticker symbol="SH" label="Short S&amp;P 500" />
+    <ticker symbol="PSQ" label="Short Nasdaq" />
+    <ticker symbol="UUP" label="Dollar Index" />
+  </group>
+</map>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Big Tech &amp; Cloud">
+  <group label="Hyperscalers">
+    <ticker symbol="MSFT" label="Microsoft (Azure)" />
+    <ticker symbol="AMZN" label="Amazon (AWS)" />
+    <ticker symbol="GOOGL" label="Alphabet (GCP)" />
+  </group>
+  <group label="Platforms &amp; Social">
+    <ticker symbol="META" label="Meta" />
+    <ticker symbol="SNAP" label="Snap" />
+    <ticker symbol="PINS" label="Pinterest" />
+    <ticker symbol="RDDT" label="Reddit" />
+  </group>
+  <group label="Enterprise SaaS">
+    <ticker symbol="CRM" label="Salesforce" />
+    <ticker symbol="NOW" label="ServiceNow" />
+    <ticker symbol="WDAY" label="Workday" />
+    <ticker symbol="SNOW" label="Snowflake" />
+    <ticker symbol="DDOG" label="Datadog" />
+    <ticker symbol="MDB" label="MongoDB" />
+  </group>
+  <group label="Devices &amp; OS">
+    <ticker symbol="AAPL" label="Apple" />
+    <ticker symbol="DELL" label="Dell" />
+    <ticker symbol="HPQ" label="HP Inc" />
+    <ticker symbol="SMCI" label="Super Micro" />
+  </group>
+</map>
