@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="AI &amp; Robotics">
+  <group label="AI Infrastructure">
+    <ticker symbol="NVDA" label="NVIDIA" />
+    <ticker symbol="AMD" label="AMD" />
+    <ticker symbol="AVGO" label="Broadcom" />
+    <ticker symbol="SMCI" label="Super Micro" />
+    <ticker symbol="ARM" label="ARM Holdings" />
+  </group>
+  <group label="AI Platforms">
+    <ticker symbol="MSFT" label="Microsoft (OpenAI)" />
+    <ticker symbol="GOOGL" label="Alphabet (Gemini)" />
+    <ticker symbol="META" label="Meta (Llama)" />
+    <ticker symbol="AMZN" label="Amazon (Bedrock)" />
+  </group>
+  <group label="AI Software">
+    <ticker symbol="PLTR" label="Palantir" />
+    <ticker symbol="AI" label="C3.ai" />
+    <ticker symbol="SOUN" label="SoundHound" />
+    <ticker symbol="BBAI" label="BigBear.ai" />
+  </group>
+  <group label="Industrial Robotics">
+    <ticker symbol="ABB" label="ABB" />
+    <ticker symbol="ROK" label="Rockwell Automation" />
+    <ticker symbol="FANUY" label="Fanuc" />
+    <ticker symbol="ISRG" label="Intuitive Surgical" />
+  </group>
+  <group label="Autonomous Vehicles">
+    <ticker symbol="TSLA" label="Tesla" />
+    <ticker symbol="MBLY" label="Mobileye" />
+    <ticker symbol="APTV" label="Aptiv" />
+  </group>
+</map>

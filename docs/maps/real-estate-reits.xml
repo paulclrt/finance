@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Real Estate &amp; REITs">
+  <group label="Residential">
+    <ticker symbol="AMT" label="American Tower" />
+    <ticker symbol="PLD" label="Prologis" />
+    <ticker symbol="EQR" label="Equity Residential" />
+    <ticker symbol="AVB" label="AvalonBay" />
+    <ticker symbol="MAA" label="Mid-America Apartment" />
+  </group>
+  <group label="Commercial &amp; Retail">
+    <ticker symbol="SPG" label="Simon Property" />
+    <ticker symbol="O" label="Realty Income" />
+    <ticker symbol="VNO" label="Vornado" />
+    <ticker symbol="BXP" label="Boston Properties" />
+  </group>
+  <group label="Data Centers">
+    <ticker symbol="EQIX" label="Equinix" />
+    <ticker symbol="DLR" label="Digital Realty" />
+    <ticker symbol="IRM" label="Iron Mountain" />
+    <ticker symbol="CCI" label="Crown Castle" />
+  </group>
+  <group label="Healthcare RE">
+    <ticker symbol="WELL" label="Welltower" />
+    <ticker symbol="VTR" label="Ventas" />
+    <ticker symbol="MPW" label="Medical Properties" />
+  </group>
+  <group label="Homebuilders">
+    <ticker symbol="DHI" label="D.R. Horton" />
+    <ticker symbol="LEN" label="Lennar" />
+    <ticker symbol="PHM" label="PulteGroup" />
+    <ticker symbol="TOL" label="Toll Brothers" />
+  </group>
+</map>

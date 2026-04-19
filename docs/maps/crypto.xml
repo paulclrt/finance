@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Crypto &amp; Digital Assets">
+  <group label="Layer 1">
+    <ticker symbol="BTC-USD" label="Bitcoin" />
+    <ticker symbol="ETH-USD" label="Ethereum" />
+    <ticker symbol="SOL-USD" label="Solana" />
+    <ticker symbol="ADA-USD" label="Cardano" />
+    <ticker symbol="AVAX-USD" label="Avalanche" />
+    <ticker symbol="DOT-USD" label="Polkadot" />
+  </group>
+  <group label="DeFi">
+    <ticker symbol="UNI-USD" label="Uniswap" />
+    <ticker symbol="AAVE-USD" label="Aave" />
+    <ticker symbol="MKR-USD" label="Maker" />
+    <ticker symbol="CRV-USD" label="Curve" />
+  </group>
+  <group label="Stablecoins &amp; Infrastructure">
+    <ticker symbol="USDT-USD" label="Tether" />
+    <ticker symbol="USDC-USD" label="USD Coin" />
+    <ticker symbol="LINK-USD" label="Chainlink" />
+  </group>
+  <group label="Listed Companies">
+    <ticker symbol="COIN" label="Coinbase" />
+    <ticker symbol="MSTR" label="MicroStrategy" />
+    <ticker symbol="RIOT" label="Riot Platforms" />
+    <ticker symbol="MARA" label="Marathon Digital" />
+    <ticker symbol="CLSK" label="CleanSpark" />
+  </group>
+  <group label="ETFs Spot">
+    <ticker symbol="IBIT" label="iShares BTC ETF" />
+    <ticker symbol="FBTC" label="Fidelity BTC ETF" />
+    <ticker symbol="ARKB" label="ARK BTC ETF" />
+    <ticker symbol="ETHA" label="iShares ETH ETF" />
+  </group>
+</map>

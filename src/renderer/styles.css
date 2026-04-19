@@ -49,6 +49,79 @@ textarea {
   font: inherit;
 }
 
+.ticker-search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticker-search-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ticker-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticker-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.ticker-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.ticker-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.ticker-submit-button {
+  flex: 0 0 auto;
+  min-width: 86px;
+  padding: 10px 14px;
+  border: 1px solid #1d4ed8;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.ticker-submit-button:hover {
+  background: #1d4ed8;
+  border-color: #1e40af;
+}
+
+.ticker-submit-button:active {
+  transform: translateY(1px);
+}
+
+.ticker-search-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .app-shell {
   height: 100vh;
   padding: 8px;
@@ -919,6 +992,17 @@ textarea {
 
   .event-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .ticker-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ticker-submit-button {
+    width: 100%;
   }
 }
 

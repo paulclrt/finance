@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Consumer">
+  <group label="E-Commerce &amp; Retail">
+    <ticker symbol="AMZN" label="Amazon" />
+    <ticker symbol="WMT" label="Walmart" />
+    <ticker symbol="TGT" label="Target" />
+    <ticker symbol="COST" label="Costco" />
+    <ticker symbol="HD" label="Home Depot" />
+    <ticker symbol="LOW" label="Lowe's" />
+  </group>
+  <group label="Luxury &amp; Apparel">
+    <ticker symbol="LVMHF" label="LVMH" />
+    <ticker symbol="HESAY" label="Hermes" />
+    <ticker symbol="CFRUY" label="Richemont" />
+    <ticker symbol="TPR" label="Tapestry" />
+    <ticker symbol="RL" label="Ralph Lauren" />
+    <ticker symbol="NKE" label="Nike" />
+    <ticker symbol="LULU" label="Lululemon" />
+  </group>
+  <group label="Food &amp; Beverage">
+    <ticker symbol="KO" label="Coca-Cola" />
+    <ticker symbol="PEP" label="PepsiCo" />
+    <ticker symbol="MDLZ" label="Mondelez" />
+    <ticker symbol="GIS" label="General Mills" />
+    <ticker symbol="K" label="Kellogg's" />
+  </group>
+  <group label="Restaurants &amp; Hospitality">
+    <ticker symbol="MCD" label="McDonald's" />
+    <ticker symbol="SBUX" label="Starbucks" />
+    <ticker symbol="YUM" label="Yum! Brands" />
+    <ticker symbol="DPZ" label="Domino's" />
+    <ticker symbol="CMG" label="Chipotle" />
+  </group>
+  <group label="Travel &amp; Leisure">
+    <ticker symbol="MAR" label="Marriott" />
+    <ticker symbol="HLT" label="Hilton" />
+    <ticker symbol="BKNG" label="Booking Holdings" />
+    <ticker symbol="ABNB" label="Airbnb" />
+    <ticker symbol="DIS" label="Disney" />
+  </group>
+</map>

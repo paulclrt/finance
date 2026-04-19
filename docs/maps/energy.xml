@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Energy">
+  <group label="Oil Majors">
+    <ticker symbol="XOM" label="ExxonMobil" />
+    <ticker symbol="CVX" label="Chevron" />
+    <ticker symbol="COP" label="ConocoPhillips" />
+    <ticker symbol="EOG" label="EOG Resources" />
+    <ticker symbol="PXD" label="Pioneer Natural" />
+    <ticker symbol="SHEL" label="Shell" />
+    <ticker symbol="BP" label="BP" />
+    <ticker symbol="TTE" label="TotalEnergies" />
+  </group>
+  <group label="Midstream &amp; Pipeline">
+    <ticker symbol="ET" label="Energy Transfer" />
+    <ticker symbol="KMI" label="Kinder Morgan" />
+    <ticker symbol="WMB" label="Williams Companies" />
+    <ticker symbol="EPD" label="Enterprise Products" />
+  </group>
+  <group label="Renewables">
+    <ticker symbol="NEE" label="NextEra Energy" />
+    <ticker symbol="ENPH" label="Enphase" />
+    <ticker symbol="FSLR" label="First Solar" />
+    <ticker symbol="RUN" label="Sunrun" />
+    <ticker symbol="PLUG" label="Plug Power" />
+    <ticker symbol="BE" label="Bloom Energy" />
+  </group>
+  <group label="Utilities">
+    <ticker symbol="DUK" label="Duke Energy" />
+    <ticker symbol="SO" label="Southern Company" />
+    <ticker symbol="EXC" label="Exelon" />
+    <ticker symbol="PCG" label="PG&amp;E" />
+    <ticker symbol="AEP" label="American Electric" />
+  </group>
+</map>

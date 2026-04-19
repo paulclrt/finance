@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Global Indices">
+  <group label="US">
+    <ticker symbol="SPY" label="S&amp;P 500" />
+    <ticker symbol="QQQ" label="Nasdaq 100" />
+    <ticker symbol="DIA" label="Dow Jones" />
+    <ticker symbol="IWM" label="Russell 2000" />
+    <ticker symbol="VIX" label="VIX Volatility" />
+  </group>
+  <group label="Europe">
+    <ticker symbol="FEZ" label="Euro Stoxx 50" />
+    <ticker symbol="EWG" label="Germany DAX" />
+    <ticker symbol="EWU" label="UK FTSE 100" />
+    <ticker symbol="EWQ" label="France CAC 40" />
+    <ticker symbol="EWI" label="Italy MIB" />
+  </group>
+  <group label="Asia">
+    <ticker symbol="EWJ" label="Japan Nikkei" />
+    <ticker symbol="MCHI" label="China CSI 300" />
+    <ticker symbol="INDA" label="India Sensex" />
+    <ticker symbol="EWY" label="South Korea" />
+    <ticker symbol="EWT" label="Taiwan" />
+  </group>
+  <group label="EM &amp; Others">
+    <ticker symbol="EEM" label="Emerging Markets" />
+    <ticker symbol="EWZ" label="Brazil" />
+    <ticker symbol="RSX" label="Russia" />
+    <ticker symbol="GXC" label="China Broad" />
+  </group>
+</map>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="US Mega Caps">
+  <group label="Technology">
+    <ticker symbol="AAPL" label="Apple" />
+    <ticker symbol="MSFT" label="Microsoft" />
+    <ticker symbol="NVDA" label="NVIDIA" />
+    <ticker symbol="GOOGL" label="Alphabet" />
+    <ticker symbol="META" label="Meta" />
+    <ticker symbol="ORCL" label="Oracle" />
+    <ticker symbol="CRM" label="Salesforce" />
+    <ticker symbol="ADBE" label="Adobe" />
+  </group>
+  <group label="Consumer">
+    <ticker symbol="AMZN" label="Amazon" />
+    <ticker symbol="TSLA" label="Tesla" />
+    <ticker symbol="WMT" label="Walmart" />
+    <ticker symbol="COST" label="Costco" />
+    <ticker symbol="HD" label="Home Depot" />
+    <ticker symbol="NKE" label="Nike" />
+    <ticker symbol="MCD" label="McDonald's" />
+    <ticker symbol="SBUX" label="Starbucks" />
+  </group>
+  <group label="Finance">
+    <ticker symbol="JPM" label="JPMorgan" />
+    <ticker symbol="BAC" label="Bank of America" />
+    <ticker symbol="GS" label="Goldman Sachs" />
+    <ticker symbol="MS" label="Morgan Stanley" />
+    <ticker symbol="BRK-B" label="Berkshire Hathaway" />
+    <ticker symbol="V" label="Visa" />
+    <ticker symbol="MA" label="Mastercard" />
+    <ticker symbol="BLK" label="BlackRock" />
+  </group>
+  <group label="Healthcare">
+    <ticker symbol="LLY" label="Eli Lilly" />
+    <ticker symbol="JNJ" label="Johnson &amp; Johnson" />
+    <ticker symbol="UNH" label="UnitedHealth" />
+    <ticker symbol="ABBV" label="AbbVie" />
+    <ticker symbol="MRK" label="Merck" />
+    <ticker symbol="PFE" label="Pfizer" />
+  </group>
+  <group label="Energy">
+    <ticker symbol="XOM" label="ExxonMobil" />
+    <ticker symbol="CVX" label="Chevron" />
+    <ticker symbol="COP" label="ConocoPhillips" />
+  </group>
+  <group label="Industrial">
+    <ticker symbol="CAT" label="Caterpillar" />
+    <ticker symbol="RTX" label="RTX Corp" />
+    <ticker symbol="HON" label="Honeywell" />
+    <ticker symbol="GE" label="GE Aerospace" />
+  </group>
+</map>

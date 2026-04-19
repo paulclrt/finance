@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Semiconductors">
+  <group label="Fabless Design">
+    <ticker symbol="NVDA" label="NVIDIA" />
+    <ticker symbol="AMD" label="AMD" />
+    <ticker symbol="QCOM" label="Qualcomm" />
+    <ticker symbol="MRVL" label="Marvell" />
+    <ticker symbol="AVGO" label="Broadcom" />
+    <ticker symbol="ARM" label="ARM Holdings" />
+  </group>
+  <group label="Foundries">
+    <ticker symbol="TSM" label="TSMC" />
+    <ticker symbol="INTC" label="Intel" />
+    <ticker symbol="SSNLF" label="Samsung" />
+    <ticker symbol="GFS" label="GlobalFoundries" />
+  </group>
+  <group label="Equipment">
+    <ticker symbol="ASML" label="ASML" />
+    <ticker symbol="LRCX" label="Lam Research" />
+    <ticker symbol="AMAT" label="Applied Materials" />
+    <ticker symbol="KLAC" label="KLA Corp" />
+    <ticker symbol="ONTO" label="Onto Innovation" />
+  </group>
+  <group label="Memory">
+    <ticker symbol="MU" label="Micron" />
+    <ticker symbol="WDC" label="Western Digital" />
+    <ticker symbol="STX" label="Seagate" />
+  </group>
+  <group label="Analog &amp; Mixed">
+    <ticker symbol="TXN" label="Texas Instruments" />
+    <ticker symbol="ADI" label="Analog Devices" />
+    <ticker symbol="MCHP" label="Microchip Tech" />
+    <ticker symbol="ON" label="ON Semiconductor" />
+  </group>
+</map>
