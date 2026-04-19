@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Financials &amp; Banking">
+  <group label="US Big Banks">
+    <ticker symbol="JPM" label="JPMorgan Chase" />
+    <ticker symbol="BAC" label="Bank of America" />
+    <ticker symbol="WFC" label="Wells Fargo" />
+    <ticker symbol="C" label="Citigroup" />
+    <ticker symbol="GS" label="Goldman Sachs" />
+    <ticker symbol="MS" label="Morgan Stanley" />
+  </group>
+  <group label="European Banks">
+    <ticker symbol="BNP" label="BNP Paribas" />
+    <ticker symbol="DB" label="Deutsche Bank" />
+    <ticker symbol="CS" label="Credit Suisse" />
+    <ticker symbol="HSBC" label="HSBC" />
+    <ticker symbol="BNPQY" label="BNP ADR" />
+  </group>
+  <group label="Asset Management">
+    <ticker symbol="BLK" label="BlackRock" />
+    <ticker symbol="SCHW" label="Charles Schwab" />
+    <ticker symbol="STT" label="State Street" />
+    <ticker symbol="IVZ" label="Invesco" />
+    <ticker symbol="AMG" label="Affiliated Managers" />
+  </group>
+  <group label="Insurance">
+    <ticker symbol="BRK-B" label="Berkshire Hathaway" />
+    <ticker symbol="MET" label="MetLife" />
+    <ticker symbol="PRU" label="Prudential" />
+    <ticker symbol="AIG" label="AIG" />
+    <ticker symbol="CB" label="Chubb" />
+  </group>
+  <group label="Payments &amp; Fintech">
+    <ticker symbol="V" label="Visa" />
+    <ticker symbol="MA" label="Mastercard" />
+    <ticker symbol="PYPL" label="PayPal" />
+    <ticker symbol="SQ" label="Block" />
+    <ticker symbol="FI" label="Fiserv" />
+    <ticker symbol="FIS" label="FIS" />
+  </group>
+</map>

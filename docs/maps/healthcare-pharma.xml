@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Healthcare &amp; Pharma">
+  <group label="Big Pharma">
+    <ticker symbol="LLY" label="Eli Lilly" />
+    <ticker symbol="JNJ" label="Johnson &amp; Johnson" />
+    <ticker symbol="ABBV" label="AbbVie" />
+    <ticker symbol="MRK" label="Merck" />
+    <ticker symbol="PFE" label="Pfizer" />
+    <ticker symbol="BMY" label="Bristol-Myers" />
+    <ticker symbol="NVS" label="Novartis" />
+    <ticker symbol="AZN" label="AstraZeneca" />
+    <ticker symbol="RHHBY" label="Roche" />
+    <ticker symbol="SNY" label="Sanofi" />
+  </group>
+  <group label="Biotech">
+    <ticker symbol="AMGN" label="Amgen" />
+    <ticker symbol="GILD" label="Gilead" />
+    <ticker symbol="REGN" label="Regeneron" />
+    <ticker symbol="VRTX" label="Vertex" />
+    <ticker symbol="MRNA" label="Moderna" />
+    <ticker symbol="BIIB" label="Biogen" />
+  </group>
+  <group label="Medical Devices">
+    <ticker symbol="MDT" label="Medtronic" />
+    <ticker symbol="ABT" label="Abbott" />
+    <ticker symbol="ISRG" label="Intuitive Surgical" />
+    <ticker symbol="SYK" label="Stryker" />
+    <ticker symbol="BSX" label="Boston Scientific" />
+  </group>
+  <group label="Health Insurance">
+    <ticker symbol="UNH" label="UnitedHealth" />
+    <ticker symbol="CVS" label="CVS Health" />
+    <ticker symbol="CI" label="Cigna" />
+    <ticker symbol="HUM" label="Humana" />
+    <ticker symbol="ELV" label="Elevance" />
+  </group>
+</map>

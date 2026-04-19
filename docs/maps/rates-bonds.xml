@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Rates &amp; Bonds">
+  <group label="US Treasuries">
+    <ticker symbol="TLT" label="20Y+ Treasury" />
+    <ticker symbol="IEF" label="7-10Y Treasury" />
+    <ticker symbol="IEI" label="3-7Y Treasury" />
+    <ticker symbol="SHY" label="1-3Y Treasury" />
+    <ticker symbol="BIL" label="T-Bills 0-3M" />
+  </group>
+  <group label="TIPS &amp; Inflation">
+    <ticker symbol="TIP" label="TIPS Broad" />
+    <ticker symbol="VTIP" label="Short TIPS" />
+    <ticker symbol="SCHP" label="TIPS ETF" />
+  </group>
+  <group label="Corporate Credit">
+    <ticker symbol="LQD" label="Investment Grade" />
+    <ticker symbol="HYG" label="High Yield" />
+    <ticker symbol="JNK" label="High Yield (SPDR)" />
+    <ticker symbol="VCIT" label="Corp Intermediate" />
+  </group>
+  <group label="Spread Indicators">
+    <ticker symbol="BKLN" label="Leveraged Loans" />
+    <ticker symbol="EMB" label="EM Bonds USD" />
+    <ticker symbol="PCY" label="EM Bonds" />
+  </group>
+  <group label="European Sovereign">
+    <ticker symbol="IBGL" label="Euro Govt Bonds" />
+    <ticker symbol="IBTM" label="Euro Med Term" />
+  </group>
+</map>

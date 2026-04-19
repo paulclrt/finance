@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Commodities">
+  <group label="Energy">
+    <ticker symbol="USO" label="Oil WTI" />
+    <ticker symbol="BNO" label="Oil Brent" />
+    <ticker symbol="UNG" label="Natural Gas" />
+    <ticker symbol="XOM" label="ExxonMobil" />
+    <ticker symbol="CVX" label="Chevron" />
+    <ticker symbol="COP" label="ConocoPhillips" />
+  </group>
+  <group label="Precious Metals">
+    <ticker symbol="GLD" label="Gold" />
+    <ticker symbol="SLV" label="Silver" />
+    <ticker symbol="PPLT" label="Platinum" />
+    <ticker symbol="PALL" label="Palladium" />
+  </group>
+  <group label="Industrial Metals">
+    <ticker symbol="CPER" label="Copper" />
+    <ticker symbol="JJN" label="Nickel" />
+    <ticker symbol="JJT" label="Tin" />
+    <ticker symbol="DBB" label="Base Metals Basket" />
+  </group>
+  <group label="Agriculture">
+    <ticker symbol="DBA" label="Agriculture Basket" />
+    <ticker symbol="WEAT" label="Wheat" />
+    <ticker symbol="CORN" label="Corn" />
+    <ticker symbol="SOYB" label="Soybeans" />
+    <ticker symbol="JO" label="Coffee" />
+  </group>
+  <group label="Miners">
+    <ticker symbol="GDX" label="Gold Miners" />
+    <ticker symbol="GDXJ" label="Junior Gold Miners" />
+    <ticker symbol="FCX" label="Freeport McMoRan" />
+    <ticker symbol="NEM" label="Newmont" />
+  </group>
+</map>

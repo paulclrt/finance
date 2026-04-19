@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Automotive">
+  <group label="US Legacy">
+    <ticker symbol="GM" label="General Motors" />
+    <ticker symbol="F" label="Ford" />
+    <ticker symbol="STLA" label="Stellantis" />
+  </group>
+  <group label="EV Leaders">
+    <ticker symbol="TSLA" label="Tesla" />
+    <ticker symbol="RIVN" label="Rivian" />
+    <ticker symbol="LCID" label="Lucid" />
+    <ticker symbol="NIO" label="NIO" />
+    <ticker symbol="XPEV" label="XPeng" />
+    <ticker symbol="LI" label="Li Auto" />
+  </group>
+  <group label="European OEMs">
+    <ticker symbol="BMWYY" label="BMW" />
+    <ticker symbol="VWAGY" label="Volkswagen" />
+    <ticker symbol="MBGYY" label="Mercedes-Benz" />
+    <ticker symbol="STLAM" label="Stellantis EU" />
+  </group>
+  <group label="Asian OEMs">
+    <ticker symbol="TM" label="Toyota" />
+    <ticker symbol="HMC" label="Honda" />
+    <ticker symbol="NSANY" label="Nissan" />
+    <ticker symbol="HYMTF" label="Hyundai" />
+    <ticker symbol="BYDDY" label="BYD" />
+  </group>
+  <group label="Suppliers &amp; Charging">
+    <ticker symbol="APTV" label="Aptiv" />
+    <ticker symbol="BWA" label="BorgWarner" />
+    <ticker symbol="CHPT" label="ChargePoint" />
+    <ticker symbol="BLNK" label="Blink Charging" />
+  </group>
+</map>
