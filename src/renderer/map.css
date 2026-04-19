@@ -1,7 +1,7 @@
 .map-window-shell {
   height: 100vh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
 }
@@ -21,6 +21,11 @@
   flex-direction: column;
 }
 
+.map-main {
+  display: flex;
+  flex-direction: column;
+}
+
 .map-sidebar-head,
 .map-sidebar-controls {
   display: flex;
@@ -34,27 +39,114 @@
 .map-sidebar-controls {
   flex-direction: column;
   align-items: stretch;
+  gap: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .map-config-list {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px;
   overflow: auto;
 }
 
-.map-config-item {
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg-muted);
+.map-config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-config-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
 
+.map-config-group-body {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-config-group-body.open {
+  display: flex;
+}
+
+.map-config-item {
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
 .map-config-item.active {
   border-color: #bfdbfe;
-  background: #eff6ff;
+  background: #f8fbff;
+}
+
+.map-config-item.missing {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.map-config-item:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.map-config-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-config-item .muted {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.map-config-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.map-config-delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.map-config-missing {
+  font-size: 11px;
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .map-config-item strong,
@@ -66,16 +158,29 @@
 .map-toolbar-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+  width: 100%;
+}
+
+.map-toolbar-actions .market-duration-selector {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.map-toolbar-actions .icon-button {
+  flex: 0 0 auto;
 }
 
 .map-status {
-  margin: 12px;
+  margin: 8px 12px 0;
+  flex: 0 0 auto;
+  padding: 6px 8px;
 }
 
 .map-canvas {
   position: relative;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
   padding: 12px;
@@ -85,7 +190,6 @@
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 100%;
 }
 
 .map-node {
@@ -113,13 +217,13 @@
 }
 
 .map-ticker {
-  padding: 8px;
-  color: #fff;
+  padding: 6px;
 }
 
 .map-ticker-content {
   display: flex;
   height: 100%;
+  min-height: 75%;
   flex-direction: column;
   justify-content: space-between;
   gap: 6px;
@@ -127,17 +231,61 @@
 
 .map-ticker-symbol {
   font-size: 11px;
-  opacity: 0.9;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-ticker-change {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-ticker-cap {
   font-size: 10px;
   opacity: 0.88;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-tile-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-ticker.small {
+  padding: 4px;
+}
+
+.map-ticker.small .map-ticker-change {
+  font-size: 13px;
+}
+
+.map-ticker.small .map-tile-title {
+  font-size: 11px;
+}
+
+.map-group-label {
+  line-height: 1.1;
+}
+
+.map-ticker.tiny .map-ticker-symbol,
+.map-ticker.tiny .map-ticker-cap {
+  display: none;
+}
+
+.map-ticker.tiny .map-tile-title {
+  font-size: 10px;
+}
+
+.map-ticker.tiny .map-ticker-change {
+  font-size: 11px;
 }
 
 @media (max-width: 920px) {

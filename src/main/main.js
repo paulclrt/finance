@@ -189,6 +189,10 @@ function getDefaultAppConfig() {
       enabled: "centralBank,inflation",
       layout: "",
     },
+    maps: {
+      selected: "",
+      custom: "[]",
+    },
   };
 }
 
@@ -255,6 +259,7 @@ function readAppConfig() {
     const windowAttributes = parseTagAttributes(xml, "window");
     const layoutAttributes = parseTagAttributes(xml, "layout");
     const widgetAttributes = parseTagAttributes(xml, "widgets");
+    const mapAttributes = parseTagAttributes(xml, "maps");
 
     appConfigState = {
       window: {
@@ -274,6 +279,10 @@ function readAppConfig() {
         enabled: widgetAttributes.enabled || defaults.widgets.enabled,
         layout: widgetAttributes.layout || defaults.widgets.layout,
       },
+      maps: {
+        selected: mapAttributes.selected || defaults.maps.selected,
+        custom: mapAttributes.custom || defaults.maps.custom,
+      },
     };
     return appConfigState;
   } catch (error) {
@@ -290,6 +299,7 @@ function serializeAppConfig(config) {
     `  <window width="${escapeXml(config.window.width)}" height="${escapeXml(config.window.height)}" x="${escapeXml(config.window.x ?? "")}" y="${escapeXml(config.window.y ?? "")}" isMaximized="${escapeXml(config.window.isMaximized)}" isFullScreen="${escapeXml(config.window.isFullScreen)}" />`,
     `  <layout leftWidth="${escapeXml(config.layout.leftWidth)}" rightWidth="${escapeXml(config.layout.rightWidth)}" bottomHeight="${escapeXml(config.layout.bottomHeight)}" />`,
     `  <widgets enabled="${escapeXml(config.widgets.enabled)}" layout="${escapeXml(config.widgets.layout ?? "")}" />`,
+    `  <maps selected="${escapeXml(config.maps?.selected ?? "")}" custom="${escapeXml(config.maps?.custom ?? "[]")}" />`,
     "</app-config>",
     "",
   ].join("\n");
@@ -332,6 +342,10 @@ function mergeAppConfig(partialConfig) {
       ...currentConfig.widgets,
       ...(partialConfig.widgets ?? {}),
     },
+    maps: {
+      ...currentConfig.maps,
+      ...(partialConfig.maps ?? {}),
+    },
   };
   scheduleAppConfigWrite();
   return appConfigState;
@@ -357,7 +371,16 @@ function ensureMapsDirectory() {
 
 function listMapConfigFiles() {
   ensureMapsDirectory();
-  return fs
+  const config = readAppConfig();
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(config?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const defaultFileNames = new Set(["us-mega-caps.xml"]);
+  const diskEntries = fs
     .readdirSync(resolveMapsDirectory(), { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".xml"))
     .map((entry) => {
@@ -367,11 +390,43 @@ function listMapConfigFiles() {
       return {
         id: entry.name,
         fileName: entry.name,
-        title: titleMatch?.[1] || entry.name.replace(/\.xml$/i, ""),
+        title: unescapeXml(titleMatch?.[1] || entry.name.replace(/\.xml$/i, "")),
         path: fullPath,
+        exists: true,
+      };
+    });
+
+  const diskByFileName = new Map(diskEntries.map((entry) => [entry.fileName, entry]));
+  const customFileNames = new Set(customEntries.map((entry) => String(entry?.fileName || "").trim()).filter(Boolean));
+
+  const defaults = diskEntries
+    .filter((entry) => defaultFileNames.has(entry.fileName) || !customFileNames.has(entry.fileName))
+    .map((entry) => ({ ...entry, group: "default" }))
+    .sort((left, right) => left.fileName.localeCompare(right.fileName));
+
+  const custom = customEntries
+    .map((entry) => {
+      const fileName = String(entry?.fileName || "").trim();
+      const diskEntry = diskByFileName.get(fileName);
+      return {
+        id: fileName,
+        fileName,
+        title: String(entry?.title || diskEntry?.title || fileName.replace(/\.xml$/i, "")),
+        path: diskEntry?.path || path.join(resolveMapsDirectory(), fileName),
+        exists: Boolean(diskEntry),
+        group: "custom",
       };
     })
-    .sort((left, right) => left.fileName.localeCompare(right.fileName));
+    .filter((entry) => entry.fileName)
+    .sort((left, right) => left.title.localeCompare(right.title));
+
+  return {
+    selectedFile: config?.maps?.selected || "",
+    groups: {
+      default: defaults,
+      custom,
+    },
+  };
 }
 
 function parseEnabledWidgetIds(config = readAppConfig()) {
@@ -999,7 +1054,7 @@ ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
 });
 
 ipcMain.handle("maps:list-configs", async () => {
-  return listMapConfigFiles().map(({ id, fileName, title }) => ({ id, fileName, title }));
+  return listMapConfigFiles();
 });
 
 ipcMain.handle("maps:import-config", async () => {
@@ -1025,7 +1080,70 @@ ipcMain.handle("maps:import-config", async () => {
   }
 
   fs.copyFileSync(sourcePath, targetPath);
-  return { imported: true, fileName: targetName };
+  const xml = fs.readFileSync(targetPath, "utf8");
+  const titleMatch = xml.match(/<map[^>]+(?:title|name)="([^"]+)"/i);
+  const title = unescapeXml(titleMatch?.[1] || targetName.replace(/\.xml$/i, ""));
+
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(readAppConfig()?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const nextEntries = [
+    ...customEntries.filter((entry) => String(entry?.fileName || "").trim() !== targetName),
+    { fileName: targetName, title, sourcePath },
+  ];
+
+  mergeAppConfig({
+    maps: {
+      selected: targetName,
+      custom: JSON.stringify(nextEntries),
+    },
+  });
+
+  return { imported: true, fileName: targetName, title };
+});
+
+ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
+  const fileName = String(fileNameValue || "").trim();
+  if (!fileName) {
+    throw new Error("Map config file is required.");
+  }
+
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(readAppConfig()?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const targetEntry = customEntries.find((entry) => String(entry?.fileName || "").trim() === fileName);
+  if (!targetEntry) {
+    throw new Error(`Custom map '${fileName}' was not found.`);
+  }
+
+  const targetPath = path.join(resolveMapsDirectory(), fileName);
+  if (fs.existsSync(targetPath)) {
+    fs.unlinkSync(targetPath);
+  }
+
+  const nextEntries = customEntries.filter((entry) => String(entry?.fileName || "").trim() !== fileName);
+  const available = listMapConfigFiles();
+  const nextSelected =
+    readAppConfig()?.maps?.selected === fileName
+      ? nextEntries[0]?.fileName || available.groups.default[0]?.fileName || ""
+      : readAppConfig()?.maps?.selected || "";
+
+  mergeAppConfig({
+    maps: {
+      selected: nextSelected,
+      custom: JSON.stringify(nextEntries),
+    },
+  });
+
+  return { deleted: true, fileName, selectedFile: nextSelected };
 });
 
 ipcMain.handle("maps:get-data", async (_event, options = {}) => {
@@ -1035,10 +1153,17 @@ ipcMain.handle("maps:get-data", async (_event, options = {}) => {
   }
 
   const availableMaps = listMapConfigFiles();
-  const selected = availableMaps.find((item) => item.fileName === fileName || item.id === fileName);
-  if (!selected) {
+  const flatMaps = [...availableMaps.groups.default, ...availableMaps.groups.custom];
+  const selected = flatMaps.find((item) => item.fileName === fileName || item.id === fileName);
+  if (!selected || !selected.exists) {
     throw new Error(`Map config '${fileName}' was not found.`);
   }
+
+  mergeAppConfig({
+    maps: {
+      selected: selected.fileName,
+    },
+  });
 
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-market-map-data.py");
   const dbPath = resolveMarketMapDbPath();

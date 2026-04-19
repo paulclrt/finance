@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("financeDesktop", {
   getGrowthData: (options) => ipcRenderer.invoke("data:get-growth-data", options),
   listMapConfigs: () => ipcRenderer.invoke("maps:list-configs"),
   importMapConfig: () => ipcRenderer.invoke("maps:import-config"),
+  deleteMapConfig: (fileName) => ipcRenderer.invoke("maps:delete-config", fileName),
   getMapData: (options) => ipcRenderer.invoke("maps:get-data", options),
   openExternal: (url) => ipcRenderer.invoke("shell:open-external", url),
   listCredentials: () => ipcRenderer.invoke("credentials:list"),

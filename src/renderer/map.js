@@ -9,13 +9,42 @@ const DURATION_OPTIONS = [
 ];
 
 const state = {
-  configs: [],
+  configs: { default: [], custom: [] },
   selectedFile: "",
   duration: "5d",
   payload: null,
   loading: false,
   error: "",
+  groupOpen: {
+    default: true,
+    custom: true,
+  },
 };
+
+let resizeFrame = null;
+
+function renderTrashIcon() {
+  return `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  `;
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -41,6 +70,14 @@ function formatMoney(value) {
   return value.toFixed(0);
 }
 
+function formatPrice(value, currency = "") {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "--";
+  }
+  const decimals = Math.abs(value) >= 100 ? 2 : value >= 10 ? 3 : 4;
+  return `${value.toFixed(decimals)}${currency ? ` ${currency}` : ""}`;
+}
+
 function formatPercent(value) {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "--";
@@ -49,16 +86,55 @@ function formatPercent(value) {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function getTileColor(changePercent) {
+function formatAssetType(value) {
+  const normalized = String(value || "").toUpperCase();
+  if (normalized === "ETF") return "ETF";
+  if (normalized === "INDEX") return "Index";
+  if (normalized === "CRYPTOCURRENCY") return "Crypto";
+  if (normalized === "EQUITY") return "Stock";
+  if (normalized === "MUTUALFUND") return "Fund";
+  if (normalized === "CURRENCY") return "FX";
+  if (normalized === "FUTURE") return "Future";
+  return normalized ? normalized.charAt(0) + normalized.slice(1).toLowerCase() : "Unknown";
+}
+
+function buildTickerHoverTitle(node) {
+  return [
+    `${node.label} (${node.symbol})`,
+    `Change: ${formatPercent(node.changePercent)}`,
+    `Last: ${formatPrice(node.lastPrice, node.currency)}`,
+    `Market cap: ${formatMoney(node.marketCap)}`,
+    `Type: ${formatAssetType(node.quoteType)}`,
+    `Source: ${node.servedFrom || "unknown"}`,
+    `Updated: ${node.lastSuccessfulRefresh || "Unknown"}`,
+  ].join("\n");
+}
+
+function getTileStyle(changePercent) {
   const value = Math.max(-12, Math.min(12, Number(changePercent) || 0));
-  if (value >= 0) {
-    const strength = value / 12;
-    const lightness = 38 - strength * 14;
-    return `hsl(145 70% ${lightness}%)`;
-  }
   const strength = Math.abs(value) / 12;
-  const lightness = 40 - strength * 12;
-  return `hsl(6 75% ${lightness}%)`;
+
+  if (Math.abs(value) < 0.3) {
+    return {
+      background: "hsl(210 20% 90%)",
+      borderColor: "rgba(148, 163, 184, 0.45)",
+      color: "#0f172a",
+    };
+  }
+
+  if (value >= 0) {
+    return {
+      background: `hsl(145 45% ${92 - strength * 30}%)`,
+      borderColor: "rgba(5, 150, 105, 0.35)",
+      color: "#0f172a",
+    };
+  }
+
+  return {
+    background: `hsl(8 58% ${92 - strength * 28}%)`,
+    borderColor: "rgba(220, 38, 38, 0.28)",
+    color: "#111827",
+  };
 }
 
 function renderDurationSelector() {
@@ -86,18 +162,56 @@ function renderConfigList() {
     return;
   }
 
-  container.innerHTML = state.configs.length
-    ? state.configs
-        .map(
-          (config) => `
-            <button class="map-config-item ${config.fileName === state.selectedFile ? "active" : ""}" type="button" data-map-file="${escapeHtml(config.fileName)}">
-              <strong>${escapeHtml(config.title)}</strong>
-              <span class="muted">${escapeHtml(config.fileName)}</span>
-            </button>
-          `,
-        )
-        .join("")
-    : `<div class="status-note empty-state"><p>No map XML file loaded yet.</p></div>`;
+  const renderGroup = (groupKey, label) => {
+    const items = state.configs[groupKey] ?? [];
+    const isOpen = state.groupOpen[groupKey] !== false;
+    return `
+      <section class="map-config-group">
+        <button class="map-config-group-toggle" type="button" data-map-group-toggle="${escapeHtml(groupKey)}" aria-expanded="${isOpen ? "true" : "false"}">
+          <span>${escapeHtml(label)}</span>
+          <span class="muted">${items.length}</span>
+        </button>
+        <div class="map-config-group-body ${isOpen ? "open" : ""}">
+          ${
+            items.length
+              ? items
+                  .map(
+                    (config) => `
+                      <div class="map-config-item ${config.fileName === state.selectedFile ? "active" : ""} ${config.exists === false ? "missing" : ""}" data-map-file="${escapeHtml(config.fileName)}" role="button" tabindex="0">
+                        <div class="map-config-item-row">
+                          <strong>${escapeHtml(config.title)}</strong>
+                          ${
+                            groupKey === "custom"
+                              ? `
+                                <button
+                                  class="map-config-delete"
+                                  type="button"
+                                  data-map-delete="${escapeHtml(config.fileName)}"
+                                  title="Remove custom map"
+                                  aria-label="Remove custom map"
+                                >
+                                  ${renderTrashIcon()}
+                                </button>
+                              `
+                              : ""
+                          }
+                        </div>
+                        <span class="muted">${escapeHtml(config.fileName)}</span>
+                        ${config.exists === false ? '<span class="map-config-missing">File not found</span>' : ""}
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="status-note empty-state"><p>No ${escapeHtml(label.toLowerCase())} maps.</p></div>`
+          }
+        </div>
+      </section>
+    `;
+  };
+
+  container.innerHTML =
+    renderGroup("default", "Default") +
+    renderGroup("custom", "Custom");
 }
 
 function renderStatus() {
@@ -136,13 +250,14 @@ function renderStatus() {
 
 function layoutChildren(children, x, y, width, height, depth = 0) {
   const total = children.reduce((sum, child) => sum + Math.max(child.marketCap || 0, 1), 0) || children.length;
-  const horizontal = depth % 2 === 0;
+  const horizontal = width >= height;
   let offset = 0;
 
-  return children.flatMap((child) => {
+  return children.map((child, index) => {
     const ratio = Math.max(child.marketCap || 0, 1) / total;
-    const childWidth = horizontal ? width * ratio : width;
-    const childHeight = horizontal ? height : height * ratio;
+    const remaining = horizontal ? width - offset : height - offset;
+    const childWidth = horizontal ? (index === children.length - 1 ? remaining : width * ratio) : width;
+    const childHeight = horizontal ? height : (index === children.length - 1 ? remaining : height * ratio);
     const rect = {
       x: horizontal ? x + offset : x,
       y: horizontal ? y : y + offset,
@@ -152,49 +267,52 @@ function layoutChildren(children, x, y, width, height, depth = 0) {
       depth,
     };
     offset += horizontal ? childWidth : childHeight;
-    return [rect];
+    return rect;
   });
 }
 
 function renderTreeNode(node, x, y, width, height, depth = 0) {
-  if (width < 24 || height < 24) {
+  if (width < 10 || height < 10) {
     return "";
   }
 
   if (node.type === "ticker") {
-    const style = `left:${x}px;top:${y}px;width:${width}px;height:${height}px;background:${getTileColor(node.changePercent)};`;
-    const small = width < 100 || height < 70;
+    const tileStyle = getTileStyle(node.changePercent);
+    const small = width < 110 || height < 78;
+    const tiny = width < 82 || height < 58;
+    const style = `left:${x}px;top:${y}px;width:${width}px;height:${height}px;background:${tileStyle.background};border-color:${tileStyle.borderColor};color:${tileStyle.color};`;
     return `
       <div
-        class="map-node map-ticker"
+        class="map-node map-ticker ${small ? "small" : ""} ${tiny ? "tiny" : ""}"
         style="${style}"
-        title="${escapeHtml(node.label)} (${escapeHtml(node.symbol)}) • ${escapeHtml(formatPercent(node.changePercent))} • ${escapeHtml(formatMoney(node.marketCap))}"
+        title="${escapeHtml(buildTickerHoverTitle(node))}"
       >
         <div class="map-ticker-content">
           <div>
-            <strong class="map-tile-title">${escapeHtml(small ? node.symbol : node.label)}</strong>
+            <strong class="map-tile-title">${escapeHtml(tiny ? node.symbol : small ? node.symbol : node.label)}</strong>
             ${small ? "" : `<span class="map-ticker-symbol">${escapeHtml(node.symbol)}</span>`}
           </div>
           <div>
             <div class="map-ticker-change">${escapeHtml(formatPercent(node.changePercent))}</div>
-            ${small ? "" : `<div class="map-ticker-cap">${escapeHtml(formatMoney(node.marketCap))}</div>`}
+            ${tiny ? "" : small ? "" : `<div class="map-ticker-cap">${escapeHtml(formatMoney(node.marketCap))}</div>`}
           </div>
         </div>
       </div>
     `;
   }
 
-  const headerHeight = 24;
+  const headerHeight = Math.min(24, Math.max(14, height * 0.16));
   const innerX = 4;
   const innerY = headerHeight;
   const innerWidth = Math.max(0, width - 8);
   const innerHeight = Math.max(0, height - headerHeight - 4);
   const style = `left:${x}px;top:${y}px;width:${width}px;height:${height}px;`;
   const childrenRects = layoutChildren(node.children || [], innerX, innerY, innerWidth, innerHeight, depth + 1);
+  const hideLabel = height < 42 || width < 90;
 
   return `
     <div class="map-node map-group" style="${style}">
-      <div class="map-group-label">${escapeHtml(node.label)}</div>
+      ${hideLabel ? "" : `<div class="map-group-label">${escapeHtml(node.label)}</div>`}
       ${childrenRects.map((rect) => renderTreeNode(rect.node, rect.x, rect.y, rect.width, rect.height, depth + 1)).join("")}
     </div>
   `;
@@ -211,8 +329,11 @@ function renderTreemap() {
     return;
   }
 
-  const width = canvas.clientWidth - 16;
-  const height = Math.max(560, canvas.clientHeight - 8);
+  const width = Math.max(0, canvas.clientWidth - 24);
+  const height = Math.max(0, canvas.clientHeight - 24);
+  if (width < 40 || height < 40) {
+    return;
+  }
   const root = state.payload.tree;
   const rects = layoutChildren(root.children || [], 0, 0, width, height, 0);
 
@@ -224,10 +345,14 @@ function renderTreemap() {
 }
 
 async function loadMapConfigs() {
-  state.configs = await window.financeDesktop.listMapConfigs();
-  if (!state.selectedFile && state.configs.length) {
-    state.selectedFile = state.configs[0].fileName;
-  }
+  const result = await window.financeDesktop.listMapConfigs();
+  state.configs = result?.groups || { default: [], custom: [] };
+  state.selectedFile =
+    state.selectedFile ||
+    result?.selectedFile ||
+    state.configs.default?.[0]?.fileName ||
+    state.configs.custom?.[0]?.fileName ||
+    "";
   renderConfigList();
   renderStatus();
 }
@@ -262,19 +387,45 @@ async function loadMapData(refresh = false) {
 
 function bindEvents() {
   document.addEventListener("click", async (event) => {
-    const button = event.target.closest("button");
-    if (!button) {
+    const target = event.target.closest("button, [data-map-file]");
+    if (!target) {
       return;
     }
 
-    if (button.matches("[data-map-file]")) {
-      state.selectedFile = button.getAttribute("data-map-file") || "";
+    if (target.matches("[data-map-file]")) {
+      state.selectedFile = target.getAttribute("data-map-file") || "";
       await loadMapData(false);
       return;
     }
 
-    if (button.matches("[data-map-duration]")) {
-      const duration = button.getAttribute("data-map-duration");
+    if (target.matches("[data-map-delete]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      const fileName = target.getAttribute("data-map-delete") || "";
+      if (!fileName) {
+        return;
+      }
+      const result = await window.financeDesktop.deleteMapConfig(fileName);
+      if (result?.deleted) {
+        state.selectedFile = result.selectedFile || "";
+        await loadMapConfigs();
+        await loadMapData(false);
+      }
+      return;
+    }
+
+    if (target.matches("[data-map-group-toggle]")) {
+      const group = target.getAttribute("data-map-group-toggle");
+      if (!group) {
+        return;
+      }
+      state.groupOpen[group] = !(state.groupOpen[group] !== false);
+      renderConfigList();
+      return;
+    }
+
+    if (target.matches("[data-map-duration]")) {
+      const duration = target.getAttribute("data-map-duration");
       if (!duration || duration === state.duration) {
         return;
       }
@@ -284,7 +435,7 @@ function bindEvents() {
       return;
     }
 
-    if (button.matches('[data-map-action="import"]')) {
+    if (target.matches('[data-map-action="import"]')) {
       const result = await window.financeDesktop.importMapConfig();
       if (result?.imported) {
         await loadMapConfigs();
@@ -294,14 +445,44 @@ function bindEvents() {
       return;
     }
 
-    if (button.matches('[data-map-action="refresh"]')) {
+    if (target.matches('[data-map-action="refresh"]')) {
       await loadMapData(true);
     }
   });
 
-  window.addEventListener("resize", () => {
-    renderTreemap();
+  document.addEventListener("keydown", async (event) => {
+    const item = event.target.closest("[data-map-file]");
+    if (!item || (event.key !== "Enter" && event.key !== " ")) {
+      return;
+    }
+    event.preventDefault();
+    state.selectedFile = item.getAttribute("data-map-file") || "";
+    await loadMapData(false);
   });
+
+  window.addEventListener("resize", () => {
+    if (resizeFrame) {
+      cancelAnimationFrame(resizeFrame);
+    }
+    resizeFrame = requestAnimationFrame(() => {
+      renderTreemap();
+      resizeFrame = null;
+    });
+  });
+
+  const canvas = document.querySelector("[data-map-canvas]");
+  if (canvas && "ResizeObserver" in window) {
+    const observer = new ResizeObserver(() => {
+      if (resizeFrame) {
+        cancelAnimationFrame(resizeFrame);
+      }
+      resizeFrame = requestAnimationFrame(() => {
+        renderTreemap();
+        resizeFrame = null;
+      });
+    });
+    observer.observe(canvas);
+  }
 }
 
 async function initializeMapWindow() {
