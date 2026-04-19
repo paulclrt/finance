@@ -4,7 +4,7 @@
 
 .market-preset-bar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
@@ -13,13 +13,14 @@
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
+  gap: 6px;
+  padding: 5px 8px;
   border: 1px solid #dbe3ee;
   border-radius: 999px;
   background: #fff;
   color: #334155;
   font-weight: 600;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -30,13 +31,13 @@
 }
 
 .market-logo-badge {
-  min-width: 28px;
-  height: 28px;
+  min-width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: #0f172a;
@@ -56,7 +57,7 @@
 }
 
 .logo-pair {
-  min-width: 36px;
+  min-width: 28px;
   overflow: visible;
   background: transparent;
   box-shadow: none;
@@ -68,15 +69,15 @@
 }
 
 .market-flag-pair img {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
 }
 
 .market-flag-pair img + img {
-  margin-left: -6px;
+  margin-left: -5px;
 }
 
 .logo-icon {
@@ -86,12 +87,12 @@
 }
 
 .logo-icon img {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .market-commodity-text {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.03em;
 }

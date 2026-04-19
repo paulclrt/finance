@@ -3,3 +3,4 @@ native/bin/
 scripts/__pycache__/
 .codex
 venv/
+tests/__pycache__/
