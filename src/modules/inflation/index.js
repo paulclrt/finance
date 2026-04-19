@@ -1,7 +1,10 @@
 import { renderIcon } from "../../renderer/icons.js";
 import { renderSourceIndicator } from "../ui/source-indicator.js";
+import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
+const MACRO_PANELS_STYLESHEET_ID = "macro-panels";
+const MACRO_PANELS_STYLESHEET_PATH = "./macro-panels.css";
 
 let chartLibraryPromise;
 const inflationStateByContainer = new WeakMap();
@@ -28,7 +31,7 @@ function getInflationState(container) {
   }
 
   state = {
-    range: "5y",
+    range: "1y",
     charts: [],
   };
   inflationStateByContainer.set(container, state);
@@ -370,5 +373,6 @@ async function loadInflationData(container, refresh = false) {
 }
 
 export function renderInflationModule(container) {
+  addStyleSheet(MACRO_PANELS_STYLESHEET_PATH, MACRO_PANELS_STYLESHEET_ID);
   loadInflationData(container);
 }
