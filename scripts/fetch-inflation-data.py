@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import datetime as dt
+import io
 import json
 import os
 import sqlite3
@@ -10,9 +12,10 @@ import urllib.request
 from pathlib import Path
 
 FRED_API_URL = "https://api.stlouisfed.org/fred/series/observations"
+ECB_DATA_API_URL = "https://data-api.ecb.europa.eu/service/data"
 CACHE_TTL_HOURS = 12
 
-SERIES = [
+US_SERIES = [
     {
         "id": "CPIAUCSL",
         "label": "US CPI",
@@ -27,12 +30,30 @@ SERIES = [
         "source_url": "https://fred.stlouisfed.org/series/PCEPI",
         "color": "#b45309",
     },
+]
+
+EU_SERIES = [
     {
-        "id": "CP0000EZ19M086NEST",
+        "id": "eu_hicp",
+        "flow_ref": "HICP",
+        "series_key": "M.U2.N.000000.4D0.ANR",
+        "fallback_flow_ref": "ICP",
+        "fallback_series_key": "M.U2.N.000000.4.ANR",
         "label": "EU HICP",
         "region": "EU",
-        "source_url": "https://fred.stlouisfed.org/series/CP0000EZ19M086NEST",
+        "source_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.M.U2.N.000000.4D0.ANR",
         "color": "#0f766e",
+    },
+    {
+        "id": "eu_core_hicp",
+        "flow_ref": "HICP",
+        "series_key": "M.U2.N.XEF000.4D0.ANR",
+        "fallback_flow_ref": "ICP",
+        "fallback_series_key": "M.U2.N.XEF000.4.ANR",
+        "label": "EU Core HICP",
+        "region": "EU",
+        "source_url": "https://data.ecb.europa.eu/data/datasets/HICP/HICP.M.U2.N.XEF000.4D0.ANR",
+        "color": "#059669",
     },
 ]
 
@@ -75,13 +96,13 @@ def is_cache_fresh(fetched_at_iso):
     return (utc_now() - fetched_at) < dt.timedelta(hours=CACHE_TTL_HOURS)
 
 
-def fetch_text(url, params):
+def fetch_text(url, params, accept="application/json"):
     full_url = f"{url}?{urllib.parse.urlencode(params)}"
     request = urllib.request.Request(
         full_url,
         headers={
             "User-Agent": "finance-lab/1.0",
-            "Accept": "application/json",
+            "Accept": accept,
         },
     )
     with urllib.request.urlopen(request, timeout=60) as response:
@@ -132,12 +153,66 @@ def build_yoy_series(raw_points):
     return yoy_points
 
 
+def normalize_month_period(value):
+    if not value:
+        return ""
+
+    if len(value) == 7:
+        return f"{value}-01"
+    return value
+
+
+def parse_ecb_csv_series(text):
+    reader = csv.DictReader(io.StringIO(text))
+    raw_points = []
+    for row in reader:
+        time_period = normalize_month_period(row.get("TIME_PERIOD", ""))
+        value = row.get("OBS_VALUE", "")
+        if not time_period or value in ("", "."):
+            continue
+        raw_points.append(
+            {
+                "time": time_period,
+                "value": round(float(value), 3),
+            }
+        )
+    return raw_points
+
+
+def fetch_ecb_series_points(config, start_period):
+    attempts = [
+        (config["flow_ref"], config["series_key"]),
+        (config.get("fallback_flow_ref"), config.get("fallback_series_key")),
+    ]
+
+    errors = []
+    for flow_ref, series_key in attempts:
+        if not flow_ref or not series_key:
+            continue
+
+        try:
+            text = fetch_text(
+                f"{ECB_DATA_API_URL}/{flow_ref}/{series_key}",
+                {
+                    "startPeriod": start_period[:7],
+                    "format": "csvdata",
+                    "detail": "dataonly",
+                },
+                accept="text/csv,application/json;q=0.9,*/*;q=0.8",
+            )
+            return parse_ecb_csv_series(text)
+        except Exception as exc:
+            errors.append(f"{flow_ref}/{series_key}: {exc}")
+
+    raise RuntimeError(f"ECB series fetch failed for {config['label']}: {'; '.join(errors)}")
+
+
 def build_payload(years, api_key):
     observation_start = (utc_now().date().replace(day=1) - dt.timedelta(days=365 * years + 40)).isoformat()
     dataset = []
     latest = []
 
-    for config in SERIES:
+    for config in US_SERIES:
         raw_points = fetch_series_points(config["id"], observation_start, api_key)
         yoy_points = build_yoy_series(raw_points)
         latest_point = yoy_points[-1] if yoy_points else None
@@ -161,9 +236,32 @@ def build_payload(years, api_key):
             }
         )
 
+    for config in EU_SERIES:
+        yoy_points = fetch_ecb_series_points(config, observation_start)
+        latest_point = yoy_points[-1] if yoy_points else None
+        dataset.append(
+            {
+                "id": config["id"],
+                "label": config["label"],
+                "region": config["region"],
+                "sourceUrl": config["source_url"],
+                "color": config["color"],
+                "points": yoy_points,
+            }
+        )
+        latest.append(
+            {
+                "id": config["id"],
+                "label": config["label"],
+                "region": config["region"],
+                "sourceUrl": config["source_url"],
+                "latestPoint": latest_point,
+            }
+        )
+
     warnings = []
     if not any(series["points"] for series in dataset):
-        warnings.append("No inflation series could be built from FRED observations.")
+        warnings.append("No inflation series could be built from FRED and ECB observations.")
 
     return {
         "series": dataset,

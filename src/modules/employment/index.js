@@ -5,6 +5,8 @@ import { addStyleSheet } from "../../utils/css-editor.js";
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 const EMPLOYMENT_STYLESHEET_ID = "employment";
 const EMPLOYMENT_STYLESHEET_PATH = "./employment-styles.css";
+const MACRO_PANELS_STYLESHEET_ID = "macro-panels";
+const MACRO_PANELS_STYLESHEET_PATH = "./macro-panels.css";
 
 let chartLibraryPromise;
 const employmentStateByContainer = new WeakMap();
@@ -372,6 +374,7 @@ async function loadEmploymentData(container, refresh = false) {
 }
 
 export function renderEmploymentModule(container) {
+  addStyleSheet(MACRO_PANELS_STYLESHEET_PATH, MACRO_PANELS_STYLESHEET_ID);
   addStyleSheet(EMPLOYMENT_STYLESHEET_PATH, EMPLOYMENT_STYLESHEET_ID);
   loadEmploymentData(container);
 }
