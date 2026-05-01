@@ -2,9 +2,81 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>landing</title>
+
+    <!-- ================================================
+         FAVICON — use .ico or .svg, not .png here
+    ================================================ -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/public/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/public/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png" />
+    <!-- Fallback SVG icon (works in Firefox & most modern browsers) -->
+    <link rel="icon" type="image/svg+xml" href="/public/favicon.ico" />
+
+
+    <title>Atlas — Local-First Financial Research Workstation</title>
+    <meta name="description" content="Atlas is a modular desktop research system for financial analysts. Multi-asset coverage across equities, macro, FX, commodities and crypto — all running locally with Python ingestion, SQLite caching, and a configurable multi-panel workspace." />
+    <meta name="keywords" content="financial research, market data, local-first, electron app, macro analysis, equity research, market map, stock screener, GDP monitor, inflation tracker, central bank, portfolio research, quantitative finance" />
+    <meta name="author" content="Atlas" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://finance.paul-claret.fr/" />
+ 
+    <!-- ================================================
+         OPEN GRAPH (LinkedIn, Facebook, iMessage, Slack…)
+    ================================================ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Atlas" />
+    <meta property="og:title" content="Atlas — Local-First Financial Research Workstation" />
+    <meta property="og:description" content="A modular Electron workspace for serious financial research. Python-driven data ingestion, local SQLite cache, multi-panel layouts, market maps, and macro monitoring — all on your machine." />
+    <meta property="og:url" content="https://yourdomain.com/" />
+    <meta property="og:image" content="https://yourdomain.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Atlas financial research workspace — multi-panel dashboard with stock ticker, macro monitor, and market map" />
+    <meta property="og:locale" content="en_US" />
+ 
+    <!-- ================================================
+         TWITTER / X CARD
+    ================================================ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@yourtwitterhandle" />
+    <meta name="twitter:creator" content="@yourtwitterhandle" />
+    <meta name="twitter:title" content="Atlas — Local-First Financial Research Workstation" />
+    <meta name="twitter:description" content="A modular Electron workspace for serious financial research. Python ingestion, local cache, market maps, macro monitoring." />
+    <meta name="twitter:image" content="https://yourdomain.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Atlas financial research workspace" />
+ 
+    <!-- ================================================
+         STRUCTURED DATA (Google rich results)
+    ================================================ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Atlas",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "macOS, Windows, Linux",
+      "description": "A modular local-first desktop workspace for financial research. Covers equities, macro, FX, commodities, crypto and rates in a single configurable environment with Python data ingestion and SQLite caching.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "url": "https://yourdomain.com/",
+      "screenshot": "https://yourdomain.com/og-image.png",
+      "featureList": [
+        "Multi-asset research across equities, FX, macro, commodities and crypto",
+        "Python-driven data ingestion with local SQLite caching",
+        "Configurable multi-panel workspace with persistent state",
+        "Detachable sector treemap market maps",
+        "Central bank and macro regime monitoring",
+        "Local-first security — no cloud dependency"
+      ]
+    }
+    </script>
+
+
+
   </head>
   <body>
     <div id="root"></div>

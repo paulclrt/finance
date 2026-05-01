@@ -100,7 +100,7 @@ const features = [
 ];
 
 const metrics = [
-  { label: "Latency", value: "<12ms", sub: "local cache" },
+  { label: "AI Integration", value: "∞", sub: "local ai model" },
   { label: "Asset classes", value: "10+", sub: "multi-asset" },
   { label: "Modules", value: "12", sub: "core panels" },
   { label: "Pipelines", value: "18", sub: "active feeds" },
@@ -400,7 +400,10 @@ export default function FinanceLabLanding() {
               {["Product", "Modules", "Architecture", "Pricing"].map(n => (
                 <button key={n} className="rounded-lg px-3 py-1.5 text-sm text-white/55 hover:bg-white/5 hover:text-white transition-colors">{n}</button>
               ))}
-              <button className="ml-2 rounded-xl bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-white/90 transition-colors flex items-center gap-2">
+              <button 
+                onClick={() => window.open("mailto:paulclaret4@gmail.com", "_blank", "noopener,noreferrer")}
+                className="ml-2 rounded-xl bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-white/90 transition-colors flex items-center gap-2"
+              >
                 Request access <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </nav>
@@ -435,8 +438,11 @@ export default function FinanceLabLanding() {
               transition={{ duration: 0.7, delay: 0.18 }}
               className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
             >
-              <button className="flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-sm font-medium text-black hover:bg-white/90 transition-colors">
-                Open workspace <ChevronRight className="h-4 w-4" />
+              <button 
+                onClick={() => window.open("https://github.com/paulclrt/finance", "_blank", "noopener,noreferrer")}
+                className="flex h-11 items-center gap-2 rounded-xl bg-white px-6 text-sm font-medium text-black hover:bg-white/90 transition-colors"
+              >
+                Check the Github <ChevronRight className="h-4 w-4" />
               </button>
               <button className="flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-6 text-sm text-white hover:bg-white/[0.07] transition-colors">
                 <Play className="h-4 w-4" /> System overview
@@ -474,7 +480,7 @@ export default function FinanceLabLanding() {
               viewport={{ once: true, margin: "-80px" }}
             >
               <div className="mb-4">
-                <SectionTag>Interactive demo</SectionTag>
+                <SectionTag>Overview Demo</SectionTag>
                 <h2 className="mt-4 text-2xl font-semibold text-white">The workspace, live.</h2>
                 <p className="mt-2 text-sm text-white/45">Faithful recreation of the actual Finance Lab interface — stock ticker left, macro monitor right.</p>
               </div>
@@ -486,7 +492,7 @@ export default function FinanceLabLanding() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
               viewport={{ once: true, margin: "-80px" }}
-              className="space-y-4"
+              className="space-y-4 flex flex-col justify-center" 
             >
               {[
                 {
@@ -608,10 +614,16 @@ export default function FinanceLabLanding() {
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <button className="flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-white/90 transition-colors">
+                <button 
+                  onClick={() => window.open("https://github.com/paulclrt/finance", "_blank", "noopener,noreferrer")}
+                   className="flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-white/90 transition-colors"
+                >
                   Get access <ArrowRight className="h-4 w-4" />
                 </button>
-                <button className="flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-sm text-white hover:bg-white/[0.07] transition-colors">
+                <button 
+                  onClick={() => window.open("https://github.com/paulclrt/finance", "_blank", "noopener,noreferrer")}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-sm text-white hover:bg-white/[0.07] transition-colors"
+                >
                   View architecture
                 </button>
               </div>
