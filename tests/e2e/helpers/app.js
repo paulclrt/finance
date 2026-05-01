@@ -1,10 +1,33 @@
 const assert = require("node:assert/strict");
 
+async function waitForFinanceDesktop() {
+  await browser.waitUntil(
+    async () =>
+      browser.execute(() => {
+        return Boolean(window.financeDesktop);
+      }),
+    {
+      timeout: 15000,
+      timeoutMsg: "window.financeDesktop did not become available",
+    }
+  );
+}
+
 async function callFinanceDesktop(path, ...args) {
+  await waitForFinanceDesktop();
+
   const result = await browser.executeAsync((methodPath, methodArgs, done) => {
     let current = window.financeDesktop;
     for (const key of methodPath) {
       current = current?.[key];
+    }
+
+    if (typeof current !== "function") {
+      done({
+        ok: false,
+        error: `Resolved target is not callable for ${methodPath.join(".")} (got ${typeof current})`,
+      });
+      return;
     }
 
     Promise.resolve()
@@ -18,6 +41,7 @@ async function callFinanceDesktop(path, ...args) {
 }
 
 async function waitForMainShell() {
+  await waitForFinanceDesktop();
   await $("h1=Finance lab").waitForDisplayed();
   await $("[data-widget-board]").waitForDisplayed();
 }
