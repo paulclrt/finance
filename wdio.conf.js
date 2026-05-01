@@ -1,10 +1,12 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const os = require("node:os");
+const electronBinary = require("electron");
 
 const testOutputDir = path.join(__dirname, ".tmp", "wdio-user-data");
 const wdioArtifactsDir = path.join(__dirname, ".tmp", "wdio-artifacts");
 const screenshotDir = path.join(wdioArtifactsDir, "screenshots");
+const projectRoot = __dirname;
 const chromedriverBinary = path.join(
   __dirname,
   "node_modules",
@@ -58,12 +60,22 @@ exports.config = {
       browserName: "electron",
       maxInstances: 1,
       browserVersion: "41.0.3",
+      "goog:chromeOptions": {
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--no-first-run",
+          "--no-default-browser-check",
+        ],
+      },
       "wdio:chromedriverOptions": {
         binary: chromedriverBinary,
       },
       "wdio:electronServiceOptions": {
-        appEntryPoint: path.join(__dirname, "src", "main", "main.js"),
-        appArgs: ["--no-sandbox", "--disable-setuid-sandbox"],
+        appBinaryPath: electronBinary,
+        appArgs: [projectRoot],
       },
     },
   ],
