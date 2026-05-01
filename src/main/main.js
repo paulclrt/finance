@@ -1,6 +1,6 @@
 const path = require("node:path");
 const fs = require("node:fs");
-const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 
 app.commandLine.appendSwitch("no-sandbox");
@@ -34,6 +34,22 @@ function resolveRiskDbPath() {
   return path.join(app.getPath("userData"), "data", "risk.sqlite3");
 }
 
+function resolveEmploymentDbPath() {
+  return path.join(app.getPath("userData"), "data", "employment.sqlite3");
+}
+
+function resolveGrowthDbPath() {
+  return path.join(app.getPath("userData"), "data", "growth.sqlite3");
+}
+
+function resolveMarketMapDbPath() {
+  return path.join(app.getPath("userData"), "data", "market-map.sqlite3");
+}
+
+function resolveMapsDirectory() {
+  return path.join(app.getPath("userData"), "maps");
+}
+
 function resolveConfigPath() {
   return path.join(app.getPath("userData"), "config", "app-state.xml");
 }
@@ -41,6 +57,36 @@ function resolveConfigPath() {
 let appConfigState = null;
 let configWriteTimer = null;
 let configWritePromise = null;
+let mapWindowRef = null;
+
+const SAMPLE_MAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<map title="US Mega Caps">
+  <group label="Technology">
+    <ticker symbol="AAPL" label="Apple" />
+    <ticker symbol="MSFT" label="Microsoft" />
+    <ticker symbol="NVDA" label="NVIDIA" />
+    <ticker symbol="GOOGL" label="Alphabet" />
+    <ticker symbol="META" label="Meta" />
+  </group>
+  <group label="Consumer">
+    <ticker symbol="AMZN" label="Amazon" />
+    <ticker symbol="TSLA" label="Tesla" />
+    <ticker symbol="WMT" label="Walmart" />
+    <ticker symbol="COST" label="Costco" />
+  </group>
+  <group label="Finance">
+    <ticker symbol="JPM" label="JPMorgan" />
+    <ticker symbol="BAC" label="Bank of America" />
+    <ticker symbol="V" label="Visa" />
+    <ticker symbol="MA" label="Mastercard" />
+  </group>
+  <group label="Healthcare">
+    <ticker symbol="LLY" label="Eli Lilly" />
+    <ticker symbol="JNJ" label="Johnson &amp; Johnson" />
+    <ticker symbol="UNH" label="UnitedHealth" />
+  </group>
+</map>
+`;
 
 const WIDGET_MENU_GROUPS = [
   {
@@ -143,6 +189,10 @@ function getDefaultAppConfig() {
       enabled: "centralBank,inflation",
       layout: "",
     },
+    maps: {
+      selected: "",
+      custom: "[]",
+    },
   };
 }
 
@@ -209,6 +259,7 @@ function readAppConfig() {
     const windowAttributes = parseTagAttributes(xml, "window");
     const layoutAttributes = parseTagAttributes(xml, "layout");
     const widgetAttributes = parseTagAttributes(xml, "widgets");
+    const mapAttributes = parseTagAttributes(xml, "maps");
 
     appConfigState = {
       window: {
@@ -228,6 +279,10 @@ function readAppConfig() {
         enabled: widgetAttributes.enabled || defaults.widgets.enabled,
         layout: widgetAttributes.layout || defaults.widgets.layout,
       },
+      maps: {
+        selected: mapAttributes.selected || defaults.maps.selected,
+        custom: mapAttributes.custom || defaults.maps.custom,
+      },
     };
     return appConfigState;
   } catch (error) {
@@ -244,6 +299,7 @@ function serializeAppConfig(config) {
     `  <window width="${escapeXml(config.window.width)}" height="${escapeXml(config.window.height)}" x="${escapeXml(config.window.x ?? "")}" y="${escapeXml(config.window.y ?? "")}" isMaximized="${escapeXml(config.window.isMaximized)}" isFullScreen="${escapeXml(config.window.isFullScreen)}" />`,
     `  <layout leftWidth="${escapeXml(config.layout.leftWidth)}" rightWidth="${escapeXml(config.layout.rightWidth)}" bottomHeight="${escapeXml(config.layout.bottomHeight)}" />`,
     `  <widgets enabled="${escapeXml(config.widgets.enabled)}" layout="${escapeXml(config.widgets.layout ?? "")}" />`,
+    `  <maps selected="${escapeXml(config.maps?.selected ?? "")}" custom="${escapeXml(config.maps?.custom ?? "[]")}" />`,
     "</app-config>",
     "",
   ].join("\n");
@@ -286,6 +342,10 @@ function mergeAppConfig(partialConfig) {
       ...currentConfig.widgets,
       ...(partialConfig.widgets ?? {}),
     },
+    maps: {
+      ...currentConfig.maps,
+      ...(partialConfig.maps ?? {}),
+    },
   };
   scheduleAppConfigWrite();
   return appConfigState;
@@ -298,6 +358,75 @@ function ensureAppConfigFile() {
     appConfigState = defaults;
     writeAppConfigSync(defaults);
   }
+}
+
+function ensureMapsDirectory() {
+  const mapsDirectory = resolveMapsDirectory();
+  fs.mkdirSync(mapsDirectory, { recursive: true });
+  const samplePath = path.join(mapsDirectory, "us-mega-caps.xml");
+  if (!fs.existsSync(samplePath)) {
+    fs.writeFileSync(samplePath, SAMPLE_MAP_XML, "utf8");
+  }
+}
+
+function listMapConfigFiles() {
+  ensureMapsDirectory();
+  const config = readAppConfig();
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(config?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const defaultFileNames = new Set(["us-mega-caps.xml"]);
+  const diskEntries = fs
+    .readdirSync(resolveMapsDirectory(), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".xml"))
+    .map((entry) => {
+      const fullPath = path.join(resolveMapsDirectory(), entry.name);
+      const xml = fs.readFileSync(fullPath, "utf8");
+      const titleMatch = xml.match(/<map[^>]+(?:title|name)="([^"]+)"/i);
+      return {
+        id: entry.name,
+        fileName: entry.name,
+        title: unescapeXml(titleMatch?.[1] || entry.name.replace(/\.xml$/i, "")),
+        path: fullPath,
+        exists: true,
+      };
+    });
+
+  const diskByFileName = new Map(diskEntries.map((entry) => [entry.fileName, entry]));
+  const customFileNames = new Set(customEntries.map((entry) => String(entry?.fileName || "").trim()).filter(Boolean));
+
+  const defaults = diskEntries
+    .filter((entry) => defaultFileNames.has(entry.fileName) || !customFileNames.has(entry.fileName))
+    .map((entry) => ({ ...entry, group: "default" }))
+    .sort((left, right) => left.fileName.localeCompare(right.fileName));
+
+  const custom = customEntries
+    .map((entry) => {
+      const fileName = String(entry?.fileName || "").trim();
+      const diskEntry = diskByFileName.get(fileName);
+      return {
+        id: fileName,
+        fileName,
+        title: String(entry?.title || diskEntry?.title || fileName.replace(/\.xml$/i, "")),
+        path: diskEntry?.path || path.join(resolveMapsDirectory(), fileName),
+        exists: Boolean(diskEntry),
+        group: "custom",
+      };
+    })
+    .filter((entry) => entry.fileName)
+    .sort((left, right) => left.title.localeCompare(right.title));
+
+  return {
+    selectedFile: config?.maps?.selected || "",
+    groups: {
+      default: defaults,
+      custom,
+    },
+  };
 }
 
 function parseEnabledWidgetIds(config = readAppConfig()) {
@@ -461,6 +590,35 @@ function resetAppLayout(mainWindow) {
   broadcastAppConfig(mainWindow);
 }
 
+function openMapWindow() {
+  if (mapWindowRef && !mapWindowRef.isDestroyed()) {
+    mapWindowRef.focus();
+    return mapWindowRef;
+  }
+
+  mapWindowRef = new BrowserWindow({
+    width: 1380,
+    height: 920,
+    minWidth: 980,
+    minHeight: 640,
+    backgroundColor: "#f3f5f7",
+    autoHideMenuBar: false,
+    title: "Market Map",
+    webPreferences: {
+      preload: path.join(__dirname, "..", "preload", "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mapWindowRef.on("closed", () => {
+    mapWindowRef = null;
+  });
+
+  mapWindowRef.loadFile(path.join(__dirname, "..", "renderer", "map.html"));
+  return mapWindowRef;
+}
+
 function buildAppMenu(mainWindow) {
   const template = [];
   const enabledWidgetIds = parseEnabledWidgetIds();
@@ -501,18 +659,27 @@ function buildAppMenu(mainWindow) {
 
   template.push({
     label: "Windows",
-    submenu: WIDGET_MENU_GROUPS.map((group) => ({
-      label: group.label,
-      submenu: group.items.map((item) => ({
-        label: item.title,
-        type: "checkbox",
-        checked: enabledWidgetIds.includes(item.id),
-        toolTip: item.description,
-        click: (menuItem) => {
-          toggleWidgetInMenu(mainWindow, item.id, menuItem.checked);
-        },
+    submenu: [
+      ...WIDGET_MENU_GROUPS.map((group) => ({
+        label: group.label,
+        submenu: group.items.map((item) => ({
+          label: item.title,
+          type: "checkbox",
+          checked: enabledWidgetIds.includes(item.id),
+          toolTip: item.description,
+          click: (menuItem) => {
+            toggleWidgetInMenu(mainWindow, item.id, menuItem.checked);
+          },
+        })),
       })),
-    })),
+      { type: "separator" },
+      {
+        label: "Open Map Window",
+        click: () => {
+          openMapWindow();
+        },
+      },
+    ],
   });
 
   template.push({
@@ -722,6 +889,52 @@ ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
   return JSON.parse(result.stdout);
 });
 
+ipcMain.handle("data:get-employment-data", async (_event, options = {}) => {
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-employment-data.py");
+  const dbPath = resolveEmploymentDbPath();
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+  const apiKey = await getFredApiKey();
+
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [...prefixArgs, scriptPath, "--db", dbPath];
+  if (options?.refresh) {
+    args.push("--refresh");
+  }
+  if (options?.years) {
+    args.push("--years", String(options.years));
+  }
+
+  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+    FRED_API_KEY: apiKey,
+  });
+  return JSON.parse(result.stdout);
+});
+
+ipcMain.handle("data:get-growth-data", async (_event, options = {}) => {
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-growth-data.py");
+  const dbPath = resolveGrowthDbPath();
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+  const apiKey = await getFredApiKey();
+
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [...prefixArgs, scriptPath, "--db", dbPath];
+  if (options?.refresh) {
+    args.push("--refresh");
+  }
+  if (options?.years) {
+    args.push("--years", String(options.years));
+  }
+
+  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+    FRED_API_KEY: apiKey,
+  });
+  return JSON.parse(result.stdout);
+});
+
 ipcMain.handle("credentials:status", async () => {
   return {
     secureStorageAvailable: safeStorage.isEncryptionAvailable(),
@@ -840,10 +1053,147 @@ ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
   return fs.existsSync(sourceFile);
 });
 
+ipcMain.handle("maps:list-configs", async () => {
+  return listMapConfigFiles();
+});
+
+ipcMain.handle("maps:import-config", async () => {
+  ensureMapsDirectory();
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "XML files", extensions: ["xml"] }],
+  });
+
+  if (result.canceled || !result.filePaths?.length) {
+    return { imported: false };
+  }
+
+  const sourcePath = result.filePaths[0];
+  const baseName = path.basename(sourcePath);
+  let targetName = baseName;
+  let targetPath = path.join(resolveMapsDirectory(), targetName);
+  let suffix = 1;
+  while (fs.existsSync(targetPath)) {
+    targetName = `${baseName.replace(/\.xml$/i, "")}-${suffix}.xml`;
+    targetPath = path.join(resolveMapsDirectory(), targetName);
+    suffix += 1;
+  }
+
+  fs.copyFileSync(sourcePath, targetPath);
+  const xml = fs.readFileSync(targetPath, "utf8");
+  const titleMatch = xml.match(/<map[^>]+(?:title|name)="([^"]+)"/i);
+  const title = unescapeXml(titleMatch?.[1] || targetName.replace(/\.xml$/i, ""));
+
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(readAppConfig()?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const nextEntries = [
+    ...customEntries.filter((entry) => String(entry?.fileName || "").trim() !== targetName),
+    { fileName: targetName, title, sourcePath },
+  ];
+
+  mergeAppConfig({
+    maps: {
+      selected: targetName,
+      custom: JSON.stringify(nextEntries),
+    },
+  });
+
+  return { imported: true, fileName: targetName, title };
+});
+
+ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
+  const fileName = String(fileNameValue || "").trim();
+  if (!fileName) {
+    throw new Error("Map config file is required.");
+  }
+
+  let customEntries = [];
+  try {
+    customEntries = JSON.parse(readAppConfig()?.maps?.custom || "[]");
+  } catch {
+    customEntries = [];
+  }
+
+  const targetEntry = customEntries.find((entry) => String(entry?.fileName || "").trim() === fileName);
+  if (!targetEntry) {
+    throw new Error(`Custom map '${fileName}' was not found.`);
+  }
+
+  const targetPath = path.join(resolveMapsDirectory(), fileName);
+  if (fs.existsSync(targetPath)) {
+    fs.unlinkSync(targetPath);
+  }
+
+  const nextEntries = customEntries.filter((entry) => String(entry?.fileName || "").trim() !== fileName);
+  const available = listMapConfigFiles();
+  const nextSelected =
+    readAppConfig()?.maps?.selected === fileName
+      ? nextEntries[0]?.fileName || available.groups.default[0]?.fileName || ""
+      : readAppConfig()?.maps?.selected || "";
+
+  mergeAppConfig({
+    maps: {
+      selected: nextSelected,
+      custom: JSON.stringify(nextEntries),
+    },
+  });
+
+  return { deleted: true, fileName, selectedFile: nextSelected };
+});
+
+ipcMain.handle("maps:get-data", async (_event, options = {}) => {
+  const fileName = String(options?.fileName || "").trim();
+  if (!fileName) {
+    throw new Error("Map config file is required.");
+  }
+
+  const availableMaps = listMapConfigFiles();
+  const flatMaps = [...availableMaps.groups.default, ...availableMaps.groups.custom];
+  const selected = flatMaps.find((item) => item.fileName === fileName || item.id === fileName);
+  if (!selected || !selected.exists) {
+    throw new Error(`Map config '${fileName}' was not found.`);
+  }
+
+  mergeAppConfig({
+    maps: {
+      selected: selected.fileName,
+    },
+  });
+
+  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-market-map-data.py");
+  const dbPath = resolveMarketMapDbPath();
+  const dbDirectory = path.dirname(dbPath);
+  const { command, prefixArgs } = resolvePythonLaunch();
+  fs.mkdirSync(dbDirectory, { recursive: true });
+
+  const args = [
+    ...prefixArgs,
+    scriptPath,
+    "--db",
+    dbPath,
+    "--config",
+    selected.path,
+    "--duration",
+    String(options?.duration || "6mo"),
+  ];
+  if (options?.refresh) {
+    args.push("--refresh");
+  }
+
+  const result = await runProcess(command, args, app.getAppPath());
+  return JSON.parse(result.stdout);
+});
+
 
 
 app.whenReady().then(() => {
   ensureAppConfigFile();
+  ensureMapsDirectory();
   createMainWindow();
 
   app.on("activate", () => {

@@ -1,8 +1,20 @@
 import { renderIcon } from "../../renderer/icons.js";
+import { renderSourceIndicator } from "../ui/source-indicator.js";
+import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
+const MACRO_PANELS_STYLESHEET_ID = "macro-panels";
+const MACRO_PANELS_STYLESHEET_PATH = "./macro-panels.css";
 
 let chartLibraryPromise;
+const inflationStateByContainer = new WeakMap();
+const RANGE_OPTIONS = [
+  { value: "1y", label: "1Y", years: 1 },
+  { value: "3y", label: "3Y", years: 3 },
+  { value: "5y", label: "5Y", years: 5 },
+  { value: "10y", label: "10Y", years: 10 },
+  { value: "all", label: "All", years: null },
+];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -10,6 +22,63 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll("\"", "&quot;");
+}
+
+function getInflationState(container) {
+  let state = inflationStateByContainer.get(container);
+  if (state) {
+    return state;
+  }
+
+  state = {
+    range: "1y",
+    charts: [],
+  };
+  inflationStateByContainer.set(container, state);
+  return state;
+}
+
+function toBusinessDay(date) {
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function applyRangeToChart(chart, range) {
+  const option = RANGE_OPTIONS.find((item) => item.value === range) ?? RANGE_OPTIONS[2];
+  if (!option.years) {
+    chart.timeScale().fitContent();
+    return;
+  }
+
+  const to = new Date();
+  const from = new Date();
+  from.setUTCFullYear(from.getUTCFullYear() - option.years);
+  chart.timeScale().setVisibleRange({
+    from: toBusinessDay(from),
+    to: toBusinessDay(to),
+  });
+}
+
+function renderRangeSelector(selected, datasetKey) {
+  return `
+    <div class="module-range-selector" role="tablist" aria-label="Chart range">
+      ${RANGE_OPTIONS.map(
+        (option) => `
+          <button
+            class="module-range-option ${option.value === selected ? "active" : ""}"
+            type="button"
+            data-${datasetKey}-range="${escapeHtml(option.value)}"
+            aria-pressed="${option.value === selected ? "true" : "false"}"
+          >
+            ${escapeHtml(option.label)}
+          </button>
+        `,
+      ).join("")}
+    </div>
+  `;
 }
 
 function loadChartLibrary() {
@@ -114,11 +183,6 @@ function renderMetricCards(latest, payload) {
           `;
         })
         .join("")}
-      <article class="metric-card rate-chip-meta">
-        <span>Source / refresh</span>
-        <strong>${escapeHtml(payload.servedFrom ?? "unknown")}</strong>
-        <p class="muted">${escapeHtml(formatTimestamp(payload.lastSuccessfulRefresh))}</p>
-      </article>
     </section>
   `;
 }
@@ -132,11 +196,13 @@ function renderEmptyState(message) {
             <p class="eyebrow">Inflation</p>
             <h2>CPI / PCE / HICP</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh inflation data",
-            dataset: 'data-action="refresh-inflation"',
-          })}
+          <div class="inline-actions">
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh inflation data",
+              dataset: 'data-action="refresh-inflation"',
+            })}
+          </div>
         </div>
         <section class="status-note empty-state">
           <p>${escapeHtml(message)}</p>
@@ -145,7 +211,7 @@ function renderEmptyState(message) {
     `;
 }
 
-function mountChart(container, payload) {
+function mountChart(rootContainer, container, payload) {
   const seriesPayload = (payload.series ?? []).filter((item) => item.points?.length);
 
   if (!seriesPayload.length) {
@@ -194,7 +260,9 @@ function mountChart(container, payload) {
         series.setData(item.points);
       }
 
-      chart.timeScale().fitContent();
+      const state = getInflationState(rootContainer);
+      state.charts.push(chart);
+      applyRangeToChart(chart, state.range);
     })
     .catch((error) => {
       container.innerHTML = `
@@ -207,6 +275,8 @@ function mountChart(container, payload) {
 }
 
 async function loadInflationData(container, refresh = false) {
+  const state = getInflationState(container);
+  state.charts = [];
   container.innerHTML = renderEmptyState(refresh ? "Refreshing inflation data..." : "Loading inflation data...");
 
   try {
@@ -220,11 +290,15 @@ async function loadInflationData(container, refresh = false) {
             <p class="eyebrow">Inflation</p>
             <h2>CPI / PCE / HICP</h2>
           </div>
-          ${iconButton({
-            icon: "refreshCw",
-            label: "Refresh inflation data",
-            dataset: 'data-action="refresh-inflation"',
-          })}
+          <div class="inline-actions">
+            ${renderSourceIndicator(payload.servedFrom, formatTimestamp(payload.lastSuccessfulRefresh))}
+            ${renderRangeSelector(state.range, "inflation")}
+            ${iconButton({
+              icon: "refreshCw",
+              label: "Refresh inflation data",
+              dataset: 'data-action="refresh-inflation"',
+            })}
+          </div>
         </div>
 
         ${renderMetricCards(payload.latest, payload)}
@@ -234,7 +308,7 @@ async function loadInflationData(container, refresh = false) {
         <section class="chart-shell">
           <div class="chart-header">
             <div>
-              <p class="eyebrow">FRED</p>
+              <p class="eyebrow">FRED + ECB</p>
               <h3>YoY inflation</h3>
             </div>
             <div class="chart-legend">
@@ -268,9 +342,27 @@ async function loadInflationData(container, refresh = false) {
       loadInflationData(container, true);
     });
 
+    container.querySelectorAll("[data-inflation-range]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextRange = button.getAttribute("data-inflation-range");
+        if (!nextRange) {
+          return;
+        }
+        state.range = nextRange;
+        container.querySelectorAll("[data-inflation-range]").forEach((item) => {
+          const isActive = item.getAttribute("data-inflation-range") === nextRange;
+          item.classList.toggle("active", isActive);
+          item.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+        for (const chart of state.charts) {
+          applyRangeToChart(chart, state.range);
+        }
+      });
+    });
+
     const chartContainer = container.querySelector("[data-inflation-chart]");
     if (chartContainer) {
-      await mountChart(chartContainer, payload);
+      await mountChart(container, chartContainer, payload);
     }
   } catch (error) {
     container.innerHTML = renderEmptyState(error.message || "Unable to load inflation data.");
@@ -281,5 +373,6 @@ async function loadInflationData(container, refresh = false) {
 }
 
 export function renderInflationModule(container) {
+  addStyleSheet(MACRO_PANELS_STYLESHEET_PATH, MACRO_PANELS_STYLESHEET_ID);
   loadInflationData(container);
 }

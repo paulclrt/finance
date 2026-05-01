@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map title="Telecom &amp; Media">
+  <group label="US Telecom">
+    <ticker symbol="T" label="AT&amp;T" />
+    <ticker symbol="VZ" label="Verizon" />
+    <ticker symbol="TMUS" label="T-Mobile" />
+    <ticker symbol="CHTR" label="Charter" />
+    <ticker symbol="CMCSA" label="Comcast" />
+  </group>
+  <group label="European Telecom">
+    <ticker symbol="DTE" label="Deutsche Telekom" />
+    <ticker symbol="TEF" label="Telefonica" />
+    <ticker symbol="ORAN" label="Orange" />
+    <ticker symbol="VOD" label="Vodafone" />
+  </group>
+  <group label="Streaming &amp; Content">
+    <ticker symbol="NFLX" label="Netflix" />
+    <ticker symbol="DIS" label="Disney+" />
+    <ticker symbol="PARA" label="Paramount" />
+    <ticker symbol="WBD" label="Warner Bros Discovery" />
+    <ticker symbol="SPOT" label="Spotify" />
+  </group>
+  <group label="Media &amp; Publishing">
+    <ticker symbol="NYT" label="NY Times" />
+    <ticker symbol="NWS" label="News Corp" />
+    <ticker symbol="FOXA" label="Fox" />
+    <ticker symbol="IPG" label="Interpublic" />
+    <ticker symbol="OMC" label="Omnicom" />
+  </group>
+</map>
