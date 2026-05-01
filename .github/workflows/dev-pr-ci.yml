@@ -59,6 +59,17 @@ jobs:
       - name: Run Python unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
 
+      - name: Run Electron end-to-end tests
+        run: xvfb-run -a npm run test:e2e
+
+      - name: Upload WDIO artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdio-artifacts
+          path: .tmp/wdio-artifacts
+          if-no-files-found: ignore
+
       - name: Validate key desktop entry points exist
         run: |
           set -euo pipefail
@@ -67,37 +78,6 @@ jobs:
           test -f src/renderer/index.html
           test -f src/renderer/map.html
           test -f native/bin/hello_logs
-
-  desktop-package-linux:
-    name: Desktop Linux package smoke build
-    runs-on: ubuntu-latest
-    needs: desktop-quality
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install desktop dependencies
-        run: npm ci
-
-      - name: Build native helper
-        run: npm run build:native
-
-      - name: Build unpacked Electron app
-        run: npx electron-builder --linux dir --publish never
-
-      - name: Upload packaged desktop artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-linux-unpacked
-          path: dist/linux-unpacked
-          if-no-files-found: error
 
   landing-quality:
     name: Landing quality checks

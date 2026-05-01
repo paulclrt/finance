@@ -6,6 +6,11 @@
     <title>Finance Lab</title>
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="stylesheet" href="./styles.css" />
+    <script>
+      if (window.financeDesktop?.runtime?.testMode) {
+        document.write('<script src="../../tests/e2e/fixtures/chart-stub.js"><\/script>');
+      }
+    </script>
   </head>
   <body>
     <div class="app-shell">

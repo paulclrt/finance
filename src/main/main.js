@@ -2,9 +2,26 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { app, BrowserWindow, ipcMain, Menu, shell, safeStorage, dialog } = require("electron");
 const { spawn } = require("node:child_process");
+const {
+  buildTickerPayload,
+  getCentralBankPayload,
+  getEmploymentPayload,
+  getGrowthPayload,
+  getInflationPayload,
+  getMapConfigs,
+  getMapPayload,
+  getRiskPayload,
+} = require("./test-fixtures.js");
 
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("disable-setuid-sandbox");
+
+const testMode = process.env.FINANCELAB_TEST_MODE === "1";
+if (testMode) {
+  const requestedUserDataPath =
+    process.env.FINANCELAB_TEST_OUTPUT_DIR?.trim() || path.join(app.getPath("temp"), "finance-lab-wdio");
+  app.setPath("userData", path.resolve(requestedUserDataPath));
+}
 
 function resolveNativeBinary() {
   const extension = process.platform === "win32" ? ".exe" : "";
@@ -54,10 +71,42 @@ function resolveConfigPath() {
   return path.join(app.getPath("userData"), "config", "app-state.xml");
 }
 
+function resetAppStateForTests() {
+  if (configWriteTimer) {
+    clearTimeout(configWriteTimer);
+    configWriteTimer = null;
+  }
+
+  if (mapWindowRef && !mapWindowRef.isDestroyed()) {
+    mapWindowRef.close();
+  }
+  mapWindowRef = null;
+
+  fs.rmSync(app.getPath("userData"), { recursive: true, force: true });
+  appConfigState = null;
+  testCredentialStore.clear();
+  ensureAppConfigFile();
+  ensureMapsDirectory();
+  return readAppConfig();
+}
+
+function listTestCredentials() {
+  return [...testCredentialStore.values()]
+    .map((credential) => ({
+      serviceKey: credential.serviceKey,
+      label: credential.label,
+      credentialType: credential.credentialType,
+      updatedAt: credential.updatedAt,
+    }))
+    .sort((left, right) => left.serviceKey.localeCompare(right.serviceKey));
+}
+
 let appConfigState = null;
 let configWriteTimer = null;
 let configWritePromise = null;
+let mainWindowRef = null;
 let mapWindowRef = null;
+const testCredentialStore = new Map();
 
 const SAMPLE_MAP_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <map title="US Mega Caps">
@@ -741,6 +790,7 @@ function createMainWindow() {
   }
 
   const window = new BrowserWindow(windowOptions);
+  mainWindowRef = window;
 
   let persistTimer = null;
   const persistWindowStateImmediate = () => {
@@ -795,6 +845,11 @@ function createMainWindow() {
     persistWindowStateImmediate();
     writeAppConfigSync(appConfigState ?? getDefaultAppConfig());
   });
+  window.on("closed", () => {
+    if (mainWindowRef === window) {
+      mainWindowRef = null;
+    }
+  });
 
   return window;
 }
@@ -810,6 +865,10 @@ ipcMain.handle("native:run-hello", async () => {
 });
 
 ipcMain.handle("data:get-central-bank-events", async (_event, options = {}) => {
+  if (testMode) {
+    return getCentralBankPayload();
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-central-bank-data.py");
   const dbPath = resolveCentralBankDbPath();
   const dbDirectory = path.dirname(dbPath);
@@ -827,6 +886,10 @@ ipcMain.handle("data:get-central-bank-events", async (_event, options = {}) => {
 });
 
 ipcMain.handle("data:get-ticker-data", async (_event, options = {}) => {
+  if (testMode) {
+    return buildTickerPayload(options?.ticker || "AAPL", options?.duration || "1mo");
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-ticker.py");
   const dbPath = path.join(app.getPath("userData"), "data", "ticker.sqlite3");
   const dbDirectory = path.dirname(dbPath);
@@ -844,6 +907,10 @@ ipcMain.handle("data:get-ticker-data", async (_event, options = {}) => {
 });
 
 ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
+  if (testMode) {
+    return getInflationPayload();
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-inflation-data.py");
   const dbPath = resolveInflationDbPath();
   const dbDirectory = path.dirname(dbPath);
@@ -867,6 +934,10 @@ ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
 });
 
 ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
+  if (testMode) {
+    return getRiskPayload();
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-risk-data.py");
   const dbPath = resolveRiskDbPath();
   const dbDirectory = path.dirname(dbPath);
@@ -890,6 +961,10 @@ ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
 });
 
 ipcMain.handle("data:get-employment-data", async (_event, options = {}) => {
+  if (testMode) {
+    return getEmploymentPayload();
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-employment-data.py");
   const dbPath = resolveEmploymentDbPath();
   const dbDirectory = path.dirname(dbPath);
@@ -913,6 +988,10 @@ ipcMain.handle("data:get-employment-data", async (_event, options = {}) => {
 });
 
 ipcMain.handle("data:get-growth-data", async (_event, options = {}) => {
+  if (testMode) {
+    return getGrowthPayload();
+  }
+
   const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-growth-data.py");
   const dbPath = resolveGrowthDbPath();
   const dbDirectory = path.dirname(dbPath);
@@ -936,6 +1015,13 @@ ipcMain.handle("data:get-growth-data", async (_event, options = {}) => {
 });
 
 ipcMain.handle("credentials:status", async () => {
+  if (testMode) {
+    return {
+      secureStorageAvailable: true,
+      dbPath: path.join(app.getPath("userData"), "data", "credentials.test.json"),
+    };
+  }
+
   return {
     secureStorageAvailable: safeStorage.isEncryptionAvailable(),
     dbPath: resolveCredentialsDbPath(),
@@ -977,11 +1063,19 @@ ipcMain.handle("config:save-widgets", async (_event, widgets) => {
 });
 
 ipcMain.handle("credentials:list", async () => {
+  if (testMode) {
+    return listTestCredentials();
+  }
+
   const result = await runCredentialsStore(["list", "--db", resolveCredentialsDbPath()]);
   return JSON.parse(result.stdout);
 });
 
 ipcMain.handle("credentials:get", async (_event, serviceKey) => {
+  if (testMode) {
+    return testCredentialStore.get(String(serviceKey || "").trim()) || null;
+  }
+
   return getDecryptedCredential(serviceKey);
 });
 
@@ -998,6 +1092,20 @@ ipcMain.handle("credentials:save", async (_event, payload) => {
   }
   if (!["api_key", "email_password"].includes(credentialType)) {
     throw new Error("Credential type is required.");
+  }
+
+  if (testMode) {
+    testCredentialStore.set(serviceKey, {
+      serviceKey,
+      label,
+      credentialType,
+      email: String(payload.email || ""),
+      password: String(payload.password || ""),
+      apiKey: String(payload.apiKey || ""),
+      notes: String(payload.notes || ""),
+      updatedAt: new Date().toISOString(),
+    });
+    return { stored: true };
   }
 
   await runCredentialsStore([
@@ -1029,6 +1137,11 @@ ipcMain.handle("credentials:delete", async (_event, serviceKey) => {
     throw new Error("Service key is required.");
   }
 
+  if (testMode) {
+    const deleted = testCredentialStore.delete(normalizedServiceKey);
+    return { deleted, serviceKey: normalizedServiceKey };
+  }
+
   const result = await runCredentialsStore([
     "delete",
     "--db",
@@ -1045,19 +1158,31 @@ ipcMain.handle("shell:open-external", async (_event, url) => {
     throw new Error("Only http(s) urls can be opened.");
   }
 
+  if (testMode) {
+    return { opened: true, url };
+  }
+
   await shell.openExternal(url);
 });
 
 ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
-  const sourceFile = path.join(__dirname, "renderer", filePath);
+  const sourceFile = path.join(__dirname, "..", "renderer", filePath);
   return fs.existsSync(sourceFile);
 });
 
 ipcMain.handle("maps:list-configs", async () => {
+  if (testMode) {
+    return getMapConfigs();
+  }
+
   return listMapConfigFiles();
 });
 
 ipcMain.handle("maps:import-config", async () => {
+  if (testMode) {
+    return { imported: false };
+  }
+
   ensureMapsDirectory();
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -1107,6 +1232,14 @@ ipcMain.handle("maps:import-config", async () => {
 });
 
 ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
+  if (testMode) {
+    return {
+      deleted: false,
+      fileName: String(fileNameValue || ""),
+      selectedFile: getMapConfigs().selectedFile,
+    };
+  }
+
   const fileName = String(fileNameValue || "").trim();
   if (!fileName) {
     throw new Error("Map config file is required.");
@@ -1147,6 +1280,10 @@ ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
 });
 
 ipcMain.handle("maps:get-data", async (_event, options = {}) => {
+  if (testMode) {
+    return getMapPayload(String(options?.duration || "6mo"));
+  }
+
   const fileName = String(options?.fileName || "").trim();
   if (!fileName) {
     throw new Error("Map config file is required.");
@@ -1187,6 +1324,60 @@ ipcMain.handle("maps:get-data", async (_event, options = {}) => {
 
   const result = await runProcess(command, args, app.getAppPath());
   return JSON.parse(result.stdout);
+});
+
+ipcMain.handle("test:reset-state", async () => {
+  if (!testMode) {
+    throw new Error("Test mode is not enabled.");
+  }
+
+  const config = resetAppStateForTests();
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    broadcastAppConfig(mainWindowRef);
+  }
+
+  return {
+    reset: true,
+    userDataPath: app.getPath("userData"),
+    config,
+  };
+});
+
+ipcMain.handle("test:open-map-window", async () => {
+  if (!testMode) {
+    throw new Error("Test mode is not enabled.");
+  }
+
+  openMapWindow();
+  return { opened: true };
+});
+
+ipcMain.handle("test:open-credentials", async () => {
+  if (!testMode) {
+    throw new Error("Test mode is not enabled.");
+  }
+  if (!mainWindowRef?.webContents || mainWindowRef.isDestroyed()) {
+    throw new Error("Main window is not available.");
+  }
+
+  mainWindowRef.webContents.send("ui:open-credentials");
+  return { opened: true };
+});
+
+ipcMain.handle("test:get-app-config", async () => {
+  if (!testMode) {
+    throw new Error("Test mode is not enabled.");
+  }
+
+  return readAppConfig();
+});
+
+ipcMain.handle("test:get-user-data-path", async () => {
+  if (!testMode) {
+    throw new Error("Test mode is not enabled.");
+  }
+
+  return app.getPath("userData");
 });
 
 

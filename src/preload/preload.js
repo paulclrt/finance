@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require("electron");
+const testMode = process.env.FINANCELAB_TEST_MODE === "1";
 
 contextBridge.exposeInMainWorld("financeDesktop", {
   runNativeHello: () => ipcRenderer.invoke("native:run-hello"),
@@ -21,6 +22,18 @@ contextBridge.exposeInMainWorld("financeDesktop", {
   getAppConfig: () => ipcRenderer.invoke("config:get"),
   saveLayoutConfig: (layout) => ipcRenderer.invoke("config:save-layout", layout),
   saveWidgetsConfig: (widgets) => ipcRenderer.invoke("config:save-widgets", widgets),
+  runtime: {
+    testMode,
+  },
+  test: testMode
+    ? {
+        resetState: () => ipcRenderer.invoke("test:reset-state"),
+        openMapWindow: () => ipcRenderer.invoke("test:open-map-window"),
+        openCredentials: () => ipcRenderer.invoke("test:open-credentials"),
+        getAppConfig: () => ipcRenderer.invoke("test:get-app-config"),
+        getUserDataPath: () => ipcRenderer.invoke("test:get-user-data-path"),
+      }
+    : undefined,
   onOpenCredentials: (callback) => {
     ipcRenderer.removeAllListeners("ui:open-credentials");
     ipcRenderer.on("ui:open-credentials", () => callback());
