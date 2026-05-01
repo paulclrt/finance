@@ -4,3 +4,4 @@ scripts/__pycache__/
 .codex
 venv/
 tests/__pycache__/
+dist/
