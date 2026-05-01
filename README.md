@@ -16,6 +16,16 @@ Squelette local d'application Electron pour un dashboard finance/quant modulaire
 npm install
 ```
 
+## Build (for release)
+
+```bash
+# Linux
+npm run dist
+# Windows
+npm run dist:win
+```
+> Note: No build is working for now.
+
 ## Launch
 
 ```bash

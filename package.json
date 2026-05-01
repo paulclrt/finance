@@ -1,18 +1,57 @@
 {
   "name": "finance",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Personal finance dashboard skeleton with Electron and native modules",
   "main": "src/main/main.js",
+  "build": {
+    "appId": "fr.paul-claret.finance",
+    "productName": "Atlas",
+    "asar": true,
+    "asarUnpack": [
+      "scripts/**/*",
+      "native/bin/**/*"
+    ],
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "scripts/**/*",
+      "native/bin/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "images"
+    }
+  },
   "scripts": {
     "build:native": "node scripts/build-native.js",
     "start": "npm run build:native && node scripts/start-electron.js",
-    "test": "echo \"No tests configured yet\""
+    "test": "echo \"No tests configured yet\"",
+    "build": "npm run build:native && node scripts/build.js",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "electron-builder --win"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^41.0.3"
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "fs": "^0.0.1-security",

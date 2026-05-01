@@ -6,9 +6,116 @@ const { spawn } = require("node:child_process");
 app.commandLine.appendSwitch("no-sandbox");
 app.commandLine.appendSwitch("disable-setuid-sandbox");
 
+const DEBUG_PREFIX = "[finance-debug]";
+
+function debugLog(scope, message, details) {
+  if (details === undefined) {
+    console.log(`${DEBUG_PREFIX}[${scope}] ${message}`);
+    return;
+  }
+  console.log(`${DEBUG_PREFIX}[${scope}] ${message}`, details);
+}
+
+function resolveRuntimeHomeDirectory() {
+  return path.join(app.getPath("home"), ".finance");
+}
+
+function resolveRuntimeScriptsDirectory() {
+  return path.join(resolveRuntimeHomeDirectory(), "scripts");
+}
+
+function resolveRuntimeNativeDirectory() {
+  return path.join(resolveRuntimeHomeDirectory(), "native", "bin");
+}
+
+function resolveBundledScriptsDirectory() {
+  const candidates = app.isPackaged
+    ? [
+        path.join(process.resourcesPath, "app.asar.unpacked", "scripts"),
+        path.join(process.resourcesPath, "scripts"),
+      ]
+    : [path.join(app.getAppPath(), "scripts")];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
+function resolveBundledNativeDirectory() {
+  const candidates = app.isPackaged
+    ? [
+        path.join(process.resourcesPath, "app.asar.unpacked", "native", "bin"),
+        path.join(process.resourcesPath, "native", "bin"),
+      ]
+    : [path.join(app.getAppPath(), "native", "bin")];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
+function ensureDirectory(targetPath, reason = "ensure-directory") {
+  fs.mkdirSync(targetPath, { recursive: true });
+  debugLog("fs", reason, { path: targetPath });
+}
+
+function copyDirectoryContents(sourceDirectory, targetDirectory) {
+  ensureDirectory(targetDirectory, "ensure-runtime-directory");
+  const entries = fs.readdirSync(sourceDirectory, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDirectory, entry.name);
+    const targetPath = path.join(targetDirectory, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectoryContents(sourcePath, targetPath);
+      continue;
+    }
+
+    const shouldCopy =
+      !fs.existsSync(targetPath) ||
+      fs.statSync(sourcePath).size !== fs.statSync(targetPath).size ||
+      fs.statSync(sourcePath).mtimeMs > fs.statSync(targetPath).mtimeMs;
+
+    if (shouldCopy) {
+      fs.copyFileSync(sourcePath, targetPath);
+      debugLog("fs", "copied-runtime-file", { sourcePath, targetPath });
+    }
+  }
+}
+
+function ensureRuntimeResources() {
+  if (!app.isPackaged) {
+    return;
+  }
+
+  const scriptsSource = resolveBundledScriptsDirectory();
+  const nativeSource = resolveBundledNativeDirectory();
+
+  if (fs.existsSync(scriptsSource)) {
+    copyDirectoryContents(scriptsSource, resolveRuntimeScriptsDirectory());
+  } else {
+    debugLog("fs", "missing-bundled-scripts-directory", { scriptsSource });
+  }
+
+  if (fs.existsSync(nativeSource)) {
+    copyDirectoryContents(nativeSource, resolveRuntimeNativeDirectory());
+  } else {
+    debugLog("fs", "missing-bundled-native-directory", { nativeSource });
+  }
+}
+
+function resolveScriptPath(scriptName) {
+  if (app.isPackaged) {
+    ensureRuntimeResources();
+    return path.join(resolveRuntimeScriptsDirectory(), scriptName);
+  }
+  return path.join(resolveBundledScriptsDirectory(), scriptName);
+}
+
 function resolveNativeBinary() {
   const extension = process.platform === "win32" ? ".exe" : "";
-  return path.join(app.getAppPath(), "native", "bin", `hello_logs${extension}`);
+  if (app.isPackaged) {
+    ensureRuntimeResources();
+    return path.join(resolveRuntimeNativeDirectory(), `hello_logs${extension}`);
+  }
+  return path.join(resolveBundledNativeDirectory(), `hello_logs${extension}`);
 }
 
 function resolvePythonLaunch() {
@@ -16,6 +123,10 @@ function resolvePythonLaunch() {
     return { command: "py", prefixArgs: ["-3"] };
   }
   return { command: "python3", prefixArgs: [] };
+}
+
+function resolveProcessCwd() {
+  return app.isPackaged ? resolveRuntimeHomeDirectory() : app.getAppPath();
 }
 
 function resolveCentralBankDbPath() {
@@ -460,6 +571,13 @@ function runProcess(command, args, cwd) {
 
 function runProcessWithEnv(command, args, cwd, env = {}) {
   return new Promise((resolve, reject) => {
+    debugLog("proc", "spawn", {
+      command,
+      args,
+      cwd,
+      envKeys: Object.keys(env),
+    });
+
     const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -481,15 +599,34 @@ function runProcessWithEnv(command, args, cwd, env = {}) {
     });
 
     child.on("error", (error) => {
+      debugLog("proc", "spawn-error", {
+        command,
+        args,
+        cwd,
+        message: error.message,
+      });
       reject(error);
     });
 
     child.on("close", (code) => {
       if (code !== 0) {
+        debugLog("proc", "spawn-close-error", {
+          command,
+          args,
+          cwd,
+          code,
+          stderr: stderr.trim(),
+        });
         reject(new Error(stderr || `Process exited with code ${code}`));
         return;
       }
 
+      debugLog("proc", "spawn-success", {
+        command,
+        args,
+        cwd,
+        code,
+      });
       resolve({ code, stdout, stderr, executedAt: new Date().toISOString() });
     });
   });
@@ -497,8 +634,8 @@ function runProcessWithEnv(command, args, cwd, env = {}) {
 
 async function runCredentialsStore(args) {
   const { command, prefixArgs } = resolvePythonLaunch();
-  const scriptPath = path.join(app.getAppPath(), "scripts", "credentials-store.py");
-  return runProcess(command, [...prefixArgs, scriptPath, ...args], app.getAppPath());
+  const scriptPath = resolveScriptPath("credentials-store.py");
+  return runProcess(command, [...prefixArgs, scriptPath, ...args], resolveProcessCwd());
 }
 
 async function getDecryptedCredential(serviceKey) {
@@ -561,8 +698,50 @@ function broadcastAppConfig(mainWindow) {
   mainWindow.webContents.send("ui:app-config-updated", readAppConfig());
 }
 
-function checkFileExists(filePath) {
-  
+function checkFileExists(filePath, label = "file") {
+  const exists = fs.existsSync(filePath);
+  debugLog("fs", "check-file-exists", { label, filePath, exists });
+  return exists;
+}
+
+function sanitizeIpcPayload(payload) {
+  if (payload == null) {
+    return payload;
+  }
+  if (Array.isArray(payload)) {
+    return payload.map((item) => sanitizeIpcPayload(item));
+  }
+  if (typeof payload !== "object") {
+    return payload;
+  }
+
+  return Object.fromEntries(
+    Object.entries(payload).map(([key, value]) => {
+      if (/(password|secret|apiKey|api_key|token|notes|email)/i.test(key)) {
+        return [key, "<redacted>"];
+      }
+      return [key, sanitizeIpcPayload(value)];
+    }),
+  );
+}
+
+function handleIpc(channel, handler) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    const startedAt = Date.now();
+    debugLog("ipc", `request:${channel}`, sanitizeIpcPayload(args));
+
+    try {
+      const result = await handler(event, ...args);
+      debugLog("ipc", `success:${channel}`, { durationMs: Date.now() - startedAt });
+      return result;
+    } catch (error) {
+      debugLog("ipc", `error:${channel}`, {
+        durationMs: Date.now() - startedAt,
+        message: error?.message || String(error),
+      });
+      throw error;
+    }
+  });
 }
 
 function toggleWidgetInMenu(mainWindow, widgetId, nextChecked) {
@@ -799,58 +978,61 @@ function createMainWindow() {
   return window;
 }
 
-ipcMain.handle("native:run-hello", async () => {
+handleIpc("native:run-hello", async () => {
   const binaryPath = resolveNativeBinary();
 
-  if (!fs.existsSync(binaryPath)) {
+  if (!checkFileExists(binaryPath, "native-binary")) {
     throw new Error(`Native binary not found at ${binaryPath}. Run npm run build:native first.`);
   }
 
   return runProcess(binaryPath, [], path.dirname(binaryPath));
 });
 
-ipcMain.handle("data:get-central-bank-events", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-central-bank-data.py");
+handleIpc("data:get-central-bank-events", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-central-bank-data.py");
   const dbPath = resolveCentralBankDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-central-bank-db-directory");
+  checkFileExists(scriptPath, "fetch-central-bank-data.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath];
   if (options?.refresh) {
     args.push("--refresh");
   }
 
-  const result = await runProcess(command, args, app.getAppPath());
+  const result = await runProcess(command, args, resolveProcessCwd());
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("data:get-ticker-data", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-ticker.py");
+handleIpc("data:get-ticker-data", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-ticker.py");
   const dbPath = path.join(app.getPath("userData"), "data", "ticker.sqlite3");
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-ticker-db-directory");
+  checkFileExists(scriptPath, "fetch-ticker.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath, "--ticker", options.ticker || "AAPL", "--duration", options.duration || "1mo"];
   if (options?.refresh) {
     args.push("--refresh");
   }
 
-  const result = await runProcess(command, args, app.getAppPath());
+  const result = await runProcess(command, args, resolveProcessCwd());
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-inflation-data.py");
+handleIpc("data:get-inflation-data", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-inflation-data.py");
   const dbPath = resolveInflationDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
   const apiKey = await getFredApiKey();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-inflation-db-directory");
+  checkFileExists(scriptPath, "fetch-inflation-data.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath];
   if (options?.refresh) {
@@ -860,20 +1042,21 @@ ipcMain.handle("data:get-inflation-data", async (_event, options = {}) => {
     args.push("--years", String(options.years));
   }
 
-  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+  const result = await runProcessWithEnv(command, args, resolveProcessCwd(), {
     FRED_API_KEY: apiKey,
   });
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-risk-data.py");
+handleIpc("data:get-risk-data", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-risk-data.py");
   const dbPath = resolveRiskDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
   const apiKey = await getFredApiKey();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-risk-db-directory");
+  checkFileExists(scriptPath, "fetch-risk-data.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath];
   if (options?.refresh) {
@@ -883,20 +1066,21 @@ ipcMain.handle("data:get-risk-data", async (_event, options = {}) => {
     args.push("--years", String(options.years));
   }
 
-  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+  const result = await runProcessWithEnv(command, args, resolveProcessCwd(), {
     FRED_API_KEY: apiKey,
   });
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("data:get-employment-data", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-employment-data.py");
+handleIpc("data:get-employment-data", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-employment-data.py");
   const dbPath = resolveEmploymentDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
   const apiKey = await getFredApiKey();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-employment-db-directory");
+  checkFileExists(scriptPath, "fetch-employment-data.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath];
   if (options?.refresh) {
@@ -906,20 +1090,21 @@ ipcMain.handle("data:get-employment-data", async (_event, options = {}) => {
     args.push("--years", String(options.years));
   }
 
-  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+  const result = await runProcessWithEnv(command, args, resolveProcessCwd(), {
     FRED_API_KEY: apiKey,
   });
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("data:get-growth-data", async (_event, options = {}) => {
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-growth-data.py");
+handleIpc("data:get-growth-data", async (_event, options = {}) => {
+  const scriptPath = resolveScriptPath("fetch-growth-data.py");
   const dbPath = resolveGrowthDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
   const apiKey = await getFredApiKey();
 
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-growth-db-directory");
+  checkFileExists(scriptPath, "fetch-growth-data.py");
 
   const args = [...prefixArgs, scriptPath, "--db", dbPath];
   if (options?.refresh) {
@@ -929,24 +1114,26 @@ ipcMain.handle("data:get-growth-data", async (_event, options = {}) => {
     args.push("--years", String(options.years));
   }
 
-  const result = await runProcessWithEnv(command, args, app.getAppPath(), {
+  const result = await runProcessWithEnv(command, args, resolveProcessCwd(), {
     FRED_API_KEY: apiKey,
   });
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("credentials:status", async () => {
+handleIpc("credentials:status", async () => {
   return {
     secureStorageAvailable: safeStorage.isEncryptionAvailable(),
     dbPath: resolveCredentialsDbPath(),
+    runtimeHome: resolveRuntimeHomeDirectory(),
+    scriptsDirectory: app.isPackaged ? resolveRuntimeScriptsDirectory() : resolveBundledScriptsDirectory(),
   };
 });
 
-ipcMain.handle("config:get", async () => {
+handleIpc("config:get", async () => {
   return readAppConfig();
 });
 
-ipcMain.handle("config:save-layout", async (_event, layout) => {
+handleIpc("config:save-layout", async (_event, layout) => {
   const safeLayout = {
     leftWidth: toFiniteNumber(layout?.leftWidth, getDefaultAppConfig().layout.leftWidth),
     rightWidth: toFiniteNumber(layout?.rightWidth, getDefaultAppConfig().layout.rightWidth),
@@ -956,7 +1143,7 @@ ipcMain.handle("config:save-layout", async (_event, layout) => {
   return { stored: true };
 });
 
-ipcMain.handle("config:save-widgets", async (_event, widgets) => {
+handleIpc("config:save-widgets", async (_event, widgets) => {
   const mainWindow = BrowserWindow.fromWebContents(_event.sender);
   const enabled = Array.isArray(widgets?.enabled)
     ? widgets.enabled.map((item) => String(item || "").trim()).filter(Boolean)
@@ -976,16 +1163,16 @@ ipcMain.handle("config:save-widgets", async (_event, widgets) => {
   return { stored: true };
 });
 
-ipcMain.handle("credentials:list", async () => {
+handleIpc("credentials:list", async () => {
   const result = await runCredentialsStore(["list", "--db", resolveCredentialsDbPath()]);
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("credentials:get", async (_event, serviceKey) => {
+handleIpc("credentials:get", async (_event, serviceKey) => {
   return getDecryptedCredential(serviceKey);
 });
 
-ipcMain.handle("credentials:save", async (_event, payload) => {
+handleIpc("credentials:save", async (_event, payload) => {
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid credential payload.");
   }
@@ -1023,7 +1210,7 @@ ipcMain.handle("credentials:save", async (_event, payload) => {
   return { stored: true };
 });
 
-ipcMain.handle("credentials:delete", async (_event, serviceKey) => {
+handleIpc("credentials:delete", async (_event, serviceKey) => {
   const normalizedServiceKey = String(serviceKey || "").trim();
   if (!normalizedServiceKey) {
     throw new Error("Service key is required.");
@@ -1040,7 +1227,7 @@ ipcMain.handle("credentials:delete", async (_event, serviceKey) => {
   return JSON.parse(result.stdout);
 });
 
-ipcMain.handle("shell:open-external", async (_event, url) => {
+handleIpc("shell:open-external", async (_event, url) => {
   if (typeof url !== "string" || !/^https?:\/\//.test(url)) {
     throw new Error("Only http(s) urls can be opened.");
   }
@@ -1048,16 +1235,16 @@ ipcMain.handle("shell:open-external", async (_event, url) => {
   await shell.openExternal(url);
 });
 
-ipcMain.handle("fs:check-file-exists", async (_event, filePath) => {
+handleIpc("fs:check-file-exists", async (_event, filePath) => {
   const sourceFile = path.join(__dirname, "renderer", filePath);
-  return fs.existsSync(sourceFile);
+  return checkFileExists(sourceFile, "renderer-file");
 });
 
-ipcMain.handle("maps:list-configs", async () => {
+handleIpc("maps:list-configs", async () => {
   return listMapConfigFiles();
 });
 
-ipcMain.handle("maps:import-config", async () => {
+handleIpc("maps:import-config", async () => {
   ensureMapsDirectory();
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -1106,7 +1293,7 @@ ipcMain.handle("maps:import-config", async () => {
   return { imported: true, fileName: targetName, title };
 });
 
-ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
+handleIpc("maps:delete-config", async (_event, fileNameValue) => {
   const fileName = String(fileNameValue || "").trim();
   if (!fileName) {
     throw new Error("Map config file is required.");
@@ -1146,7 +1333,7 @@ ipcMain.handle("maps:delete-config", async (_event, fileNameValue) => {
   return { deleted: true, fileName, selectedFile: nextSelected };
 });
 
-ipcMain.handle("maps:get-data", async (_event, options = {}) => {
+handleIpc("maps:get-data", async (_event, options = {}) => {
   const fileName = String(options?.fileName || "").trim();
   if (!fileName) {
     throw new Error("Map config file is required.");
@@ -1165,11 +1352,12 @@ ipcMain.handle("maps:get-data", async (_event, options = {}) => {
     },
   });
 
-  const scriptPath = path.join(app.getAppPath(), "scripts", "fetch-market-map-data.py");
+  const scriptPath = resolveScriptPath("fetch-market-map-data.py");
   const dbPath = resolveMarketMapDbPath();
   const dbDirectory = path.dirname(dbPath);
   const { command, prefixArgs } = resolvePythonLaunch();
-  fs.mkdirSync(dbDirectory, { recursive: true });
+  ensureDirectory(dbDirectory, "ensure-market-map-db-directory");
+  checkFileExists(scriptPath, "fetch-market-map-data.py");
 
   const args = [
     ...prefixArgs,
@@ -1185,13 +1373,22 @@ ipcMain.handle("maps:get-data", async (_event, options = {}) => {
     args.push("--refresh");
   }
 
-  const result = await runProcess(command, args, app.getAppPath());
+  const result = await runProcess(command, args, resolveProcessCwd());
   return JSON.parse(result.stdout);
 });
 
 
 
 app.whenReady().then(() => {
+  debugLog("app", "ready", {
+    isPackaged: app.isPackaged,
+    appPath: app.getAppPath(),
+    resourcesPath: process.resourcesPath,
+    runtimeHome: resolveRuntimeHomeDirectory(),
+    bundledScriptsDirectory: resolveBundledScriptsDirectory(),
+    bundledNativeDirectory: resolveBundledNativeDirectory(),
+  });
+  ensureRuntimeResources();
   ensureAppConfigFile();
   ensureMapsDirectory();
   createMainWindow();
