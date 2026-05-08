@@ -8,8 +8,6 @@ import { renderInflationModule } from "./inflation/index.js";
 import { renderRiskModule } from "./risk/index.js";
 import { renderInspectorModule } from "./inspector/index.js";
 import { renderLogsModule } from "./logs/index.js";
-// import { renderNavigationModule } from "./navigation/index.js";
-import { renderOverviewModule } from "./overview/index.js";
 import { renderTickerModule } from "./ticker/index.js";
 
 function escapeHtml(value) {
@@ -46,12 +44,6 @@ function renderPlaceholderModuleFactory(widget) {
 }
 
 export const moduleRegistry = {
-  // navigation: {
-  //   render: renderNavigationModule,
-  // },
-  // overview: {
-  //   render: renderOverviewModule,
-  // },
   centralBank: {
     render: renderCentralBankModule,
   },
