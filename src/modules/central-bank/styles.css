@@ -1,0 +1,98 @@
+.central-bank-chart {
+  min-height: 220px;
+}
+
+.chart-legend {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.legend-dot-deposit {
+  background: #2563eb;
+}
+
+.legend-dot-fed {
+  background: #b45309;
+}
+
+.legend-dot-main {
+  background: #0f766e;
+}
+
+.legend-dot-marginal {
+  background: #64748b;
+}
+
+.bank-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #e5efff;
+  color: #1d4ed8;
+}
+
+.bank-pill-ecb {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.bank-pill-fed {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-muted);
+}
+
+.event-body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.event-primary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-primary strong {
+  font-size: 12px;
+}
+
+.event-secondary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+.event-rate-tag {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+@media (max-width: 1100px) {
+  .event-row {
+    grid-template-columns: 1fr;
+  }
+}

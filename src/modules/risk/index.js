@@ -1,7 +1,10 @@
 import { renderIcon } from "../../renderer/icons.js";
 import { renderSourceIndicator } from "../ui/source-indicator.js";
+import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
+const RISK_STYLESHEET_ID = "risk";
+const RISK_STYLESHEET_PATH = "./styles.css";
 
 let chartLibraryPromise;
 let selectedChartId = "vix";
@@ -333,5 +336,6 @@ async function loadRiskData(container, refresh = false) {
 }
 
 export function renderRiskModule(container) {
+  addStyleSheet(RISK_STYLESHEET_PATH, RISK_STYLESHEET_ID, import.meta.url);
   loadRiskData(container);
 }

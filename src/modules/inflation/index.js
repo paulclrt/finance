@@ -4,7 +4,7 @@ import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 const MACRO_PANELS_STYLESHEET_ID = "macro-panels";
-const MACRO_PANELS_STYLESHEET_PATH = "./macro-panels.css";
+const MACRO_PANELS_STYLESHEET_PATH = "../macro/styles.css";
 
 let chartLibraryPromise;
 const inflationStateByContainer = new WeakMap();
@@ -373,6 +373,6 @@ async function loadInflationData(container, refresh = false) {
 }
 
 export function renderInflationModule(container) {
-  addStyleSheet(MACRO_PANELS_STYLESHEET_PATH, MACRO_PANELS_STYLESHEET_ID);
+  addStyleSheet(MACRO_PANELS_STYLESHEET_PATH, MACRO_PANELS_STYLESHEET_ID, import.meta.url);
   loadInflationData(container);
 }

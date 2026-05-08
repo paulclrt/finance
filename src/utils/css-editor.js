@@ -1,4 +1,4 @@
-export function addStyleSheet(stylesheetPath, styleSheetID) {
+export function addStyleSheet(stylesheetPath, styleSheetID, baseUrl = window.location.href) {
   const head = document.querySelector("head");
   if (!head) {
     return null;
@@ -11,7 +11,7 @@ export function addStyleSheet(stylesheetPath, styleSheetID) {
 
   const stylesheet = document.createElement("link");
   stylesheet.setAttribute("rel", "stylesheet");
-  stylesheet.setAttribute("href", stylesheetPath);
+  stylesheet.setAttribute("href", new URL(stylesheetPath, baseUrl).href);
   stylesheet.setAttribute("id", `stylesheet-${styleSheetID}`);
   head.appendChild(stylesheet);
   return stylesheet;

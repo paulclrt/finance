@@ -1,0 +1,81 @@
+.app-shell {
+  height: 100vh;
+  padding: 8px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 8px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.topbar-brand {
+  flex: 0 0 auto;
+}
+
+.topbar h1 {
+  font-size: 14px;
+}
+
+.topbar-meta {
+  margin: 0;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+
+.topbar-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.workspace {
+  min-height: 0;
+  display: block;
+  overflow: auto;
+  padding: 0;
+}
+
+.widget-empty-state {
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .workspace {
+    min-height: auto;
+  }
+}

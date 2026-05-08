@@ -4,7 +4,9 @@ import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 const STYLESHEET_ID = "market-panels";
-const STYLESHEET_PATH = "./market-panels.css";
+const STYLESHEET_PATH = "./styles.css";
+const TICKER_STYLESHEET_ID = "ticker-search";
+const TICKER_STYLESHEET_PATH = "../ticker/styles.css";
 
 let chartLibraryPromise;
 
@@ -490,7 +492,8 @@ export function createMarketExplorerModule(config) {
   const runtimeConfig = { ...config, getState };
 
   return function renderMarketExplorer(container) {
-    addStyleSheet(STYLESHEET_PATH, STYLESHEET_ID);
+    addStyleSheet(STYLESHEET_PATH, STYLESHEET_ID, import.meta.url);
+    addStyleSheet(TICKER_STYLESHEET_PATH, TICKER_STYLESHEET_ID, import.meta.url);
     getState(container);
     attachListeners(runtimeConfig, container);
     renderView(runtimeConfig, container);

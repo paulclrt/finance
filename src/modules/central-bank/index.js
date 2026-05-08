@@ -1,7 +1,10 @@
 import { renderIcon } from "../../renderer/icons.js";
 import { renderSourceIndicator } from "../ui/source-indicator.js";
+import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
+const CENTRAL_BANK_STYLESHEET_ID = "central-bank";
+const CENTRAL_BANK_STYLESHEET_PATH = "./styles.css";
 
 let chartLibraryPromise;
 
@@ -447,5 +450,6 @@ async function loadCentralBankData(container, refresh = false) {
 }
 
 export function renderCentralBankModule(container) {
+  addStyleSheet(CENTRAL_BANK_STYLESHEET_PATH, CENTRAL_BANK_STYLESHEET_ID, import.meta.url);
   loadCentralBankData(container);
 }
