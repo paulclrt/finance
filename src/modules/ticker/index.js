@@ -4,7 +4,7 @@ import { addStyleSheet } from "../../utils/css-editor.js";
 
 const CHART_LIBRARY_URL = "https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js";
 const TICKER_STYLESHEET_ID = "ticker";
-const TICKER_STYLESHEET_PATH = "./ticker-styles.css";
+const TICKER_STYLESHEET_PATH = "./styles.css";
 
 let chartLibraryPromise;
 const tickerStateByContainer = new WeakMap();
@@ -514,7 +514,7 @@ function attachTickerListeners(container) {
 }
 
 export function renderTickerModule(container) {
-  addStyleSheet(TICKER_STYLESHEET_PATH, TICKER_STYLESHEET_ID);
+  addStyleSheet(TICKER_STYLESHEET_PATH, TICKER_STYLESHEET_ID, import.meta.url);
   getTickerState(container);
   attachTickerListeners(container);
   renderTickerView(container);
