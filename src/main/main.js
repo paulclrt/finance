@@ -99,7 +99,7 @@ function openMapWindow() {
     mapWindowRef = null;
   });
 
-  mapWindowRef.loadFile(path.join(__dirname, "..", "renderer", "map.html"));
+  mapWindowRef.loadFile(path.join(__dirname, "..", "windows", "map", "index.html"));
   return mapWindowRef;
 }
 
