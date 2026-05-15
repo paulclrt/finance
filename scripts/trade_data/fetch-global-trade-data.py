@@ -1,22 +1,16 @@
-import pandas
 import ipaddress
-import requests
 import re
-from urllib.parse import urlparse
-import socket
 import argparse
 import comtradeapicall
 import importlib.metadata
-from pprint import pprint
 from datetime import date, datetime
-from datetime import timedelta 
 
 # local imports
 from HSIndex import HSIndex, print_table
-from ISOcountry import ISOCountry
+from ComCountries import ComCountries
 
 HStable = HSIndex("./com_trade_HS_codes.json")
-ISOCountryTable = ISOCountry("./country_codes.json")
+ComCountriesTable = ComCountries("./comtrade_reporters.json")
 
 ################################################
 # Config global variables
@@ -118,24 +112,6 @@ def check_proxy(host, port, timeout=2.0):
             return True
     except Exception:
         return False
-# def v_HSobject(s: str):
-#     results_text = HStable.search(s.lower())
-#     result_code = HStable.get(s.lower())
-#     results = results_text + result_code
-#     if results == None and s.upper() != "TOTAL":
-#         raise argparse.ArgumentTypeError(
-#                 f"No results found for {s}"
-#         )
-#     elif len(results_text) > 1:
-#         # if args.no_warning == False:
-#         # print("/!\\ Warning")
-#         # print(f"Found multiple matching element for {s}, please select one from the table bellow")
-#         # print_table(results)
-#         return results_text[0]["code"]
-#     elif s.lower() == "total":
-#         return None
-#     else:
-#         return result_code["code"]
 def v_HSobject(s: str):
 
     if s.lower() == "total":
@@ -158,17 +134,17 @@ def v_HSobject(s: str):
     else:
         return results_text[0]["code"]
 def v_country(s: str):
-    results_text = ISOCountryTable.search(s.lower())
-    results_code = ISOCountryTable.get(s.lower())
+    results_text = ComCountriesTable.search(s.lower())
+    results_code = ComCountriesTable.get(s.lower())
 
     if not results_code and not len(results_text) > 0:
         raise argparse.ArgumentTypeError(
                 f"No results found for code {s}"
         )
     if len(results_text) > 0 and not results_code:
-        return results_text[0]["country-code"]
+        return results_text[0]["reporterCode"]
     elif results_code and not results_text:
-        return results_code["country-code"]
+        return results_code["reporterCode"]
 
 ################################################
 # Argument definition
@@ -279,14 +255,14 @@ mydf = comtradeapicall.previewFinalData(
                                   # examples: sea, air, rail, road
                                   # often unavailable/incomplete
     # ---- API OUTPUT LIMIT ----
-    maxRecords=500,
+    # maxRecords=501,
     # ---- OUTPUT FORMAT ----
     format_output=OUTPUT_FORMAT,
     # ---- AGGREGATION ----
     aggregateBy=None,             # aggregation level
                                   # None = default/raw structure
     # ---- DATA STRUCTURE ----
-    breakdownMode='classic',
+    breakdownMode='plus',
     # ---- COUNT ONLY ----
     countOnly=None,               # if True:
                                   # returns only number of matching rows
@@ -294,6 +270,15 @@ mydf = comtradeapicall.previewFinalData(
     includeDesc=False             # include descriptions:
                                   # country names, flow names, HS labels...
 )
+#
+# reference = comtradeapicall.listReference()
+#
+#
+# countries = reference[reference["variable"].str.contains("Partner|Reporter", case=False, na=False)]
+#
+# pandas.set_option("display.max_colwidth", None)
+# for el in countries[["description", "fileuri"]]:
+#     print(countries[el].to_string())
 
 print(mydf.head(5))
 
