@@ -117,22 +117,27 @@ def v_HSobject(s: str):
     if s.lower() == "total":
         return None
 
-    results_text = HStable.search(s.lower())
-    result_code = HStable.get(s.lower())
-
-    if not results_text and not result_code:
-        raise argparse.ArgumentTypeError(
-            f"No results found for {s}"
-        )
-
-    elif len(results_text) > 1:
-        return results_text[0]["code"]
-
-    elif result_code:
-        return result_code["code"]
-
+    list = []
+    if "," in s.lower():
+        list = s.split(",")
     else:
-        return results_text[0]["code"]
+        list = [s]
+
+    results = []
+    for el in list:
+        results_text = HStable.search(el)
+        result_code = HStable.get(el)
+
+        if not results_text and not result_code:
+            raise argparse.ArgumentTypeError(
+                f"No results found for {s}"
+            )
+
+        elif result_code:
+            results.append(result_code["code"])
+        elif len(results_text) > 1:
+            results.append(results_text[0]["code"])
+    return ",".join(results)
 def v_country(s: str):
     results_text = ComCountriesTable.search(s.lower())
     results_code = ComCountriesTable.get(s.lower())
