@@ -1,0 +1,369 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #081012;
+}
+
+.trade-app {
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(84, 214, 161, 0.08), transparent 28%),
+    linear-gradient(315deg, rgba(239, 111, 108, 0.08), transparent 30%),
+    #081012;
+  color: #eef6f4;
+  font-family: "Inter Variable", Inter, system-ui, sans-serif;
+  padding: 22px;
+}
+
+.trade-loading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+}
+
+.trade-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 1500px;
+}
+
+.trade-header {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 500px);
+}
+
+.eyebrow {
+  align-items: center;
+  color: #85e2c0;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 8px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.trade-header h1 {
+  font-size: clamp(36px, 6vw, 76px);
+  letter-spacing: 0;
+  line-height: 0.94;
+  margin: 12px 0;
+  max-width: 780px;
+}
+
+.trade-header p {
+  color: rgba(238, 246, 244, 0.68);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 650px;
+}
+
+.trade-controls {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.trade-controls label {
+  color: rgba(238, 246, 244, 0.55);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.trade-controls select {
+  appearance: none;
+  background: #101a1c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #f7fbfa;
+  font: inherit;
+  line-height: 1.25;
+  min-width: 0;
+  outline: none;
+  padding: 12px;
+}
+
+.map-stage {
+  background: #0b1518;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  min-height: 520px;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-stage svg {
+  display: block;
+  min-height: 520px;
+  width: 100%;
+}
+
+.ocean {
+  fill: #0b161c;
+}
+
+.graticule path {
+  fill: none;
+  stroke: rgba(197, 221, 218, 0.09);
+  stroke-width: 0.7;
+}
+
+.country {
+  fill: #263734;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.45;
+  transition: fill 220ms ease, opacity 220ms ease;
+}
+
+.country.active {
+  fill: #38544e;
+}
+
+.route {
+  animation: drawRoute 900ms ease-out both;
+  animation-delay: var(--delay);
+  cursor: pointer;
+  fill: none;
+  filter: url("#routeGlow");
+  mix-blend-mode: screen;
+  stroke: url("#routeGradient");
+  stroke-linecap: round;
+  transition: opacity 160ms ease, stroke-width 160ms ease;
+}
+
+.route:hover,
+.route.focused {
+  opacity: 1 !important;
+  stroke: #fff1b8;
+}
+
+.ports circle {
+  fill: #eef6f4;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+@keyframes drawRoute {
+  from {
+    stroke-dasharray: 8 14;
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dasharray: 900 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+.tooltip {
+  background: rgba(7, 14, 16, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #eef6f4;
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px;
+  pointer-events: none;
+  position: fixed;
+  z-index: 5;
+}
+
+.tooltip strong {
+  font-size: 12px;
+}
+
+.tooltip span {
+  color: #f5c15c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-panel {
+  background: rgba(8, 16, 18, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  bottom: 18px;
+  max-width: min(380px, calc(100% - 36px));
+  padding: 18px;
+  position: absolute;
+  right: 18px;
+}
+
+.panel-label {
+  color: #85e2c0;
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.detail-panel h2 {
+  font-size: 20px;
+  line-height: 1.18;
+  margin: 0 28px 10px 0;
+}
+
+.detail-panel p {
+  color: rgba(238, 246, 244, 0.64);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.close-detail {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #eef6f4;
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 30px;
+}
+
+.route-countries {
+  align-items: center;
+  color: #f5c15c;
+  display: flex;
+  font-size: 22px;
+  font-weight: 850;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.detail-panel dl {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin: 14px 0 0;
+}
+
+.detail-panel dl div {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.detail-panel dt {
+  color: rgba(238, 246, 244, 0.52);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+
+.detail-panel dd {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) minmax(320px, 1.4fr);
+}
+
+.summary-grid article {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  min-height: 112px;
+  padding: 16px;
+}
+
+.summary-grid article:not(.exporter-rank) {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-grid svg {
+  color: #85e2c0;
+}
+
+.summary-grid span,
+.exporter-rank > span {
+  color: rgba(238, 246, 244, 0.58);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-grid strong {
+  align-self: end;
+  color: #f7fbfa;
+  font-size: 27px;
+  letter-spacing: 0;
+}
+
+.exporter-rank div {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.exporter-rank p {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 48px 1fr auto;
+  margin: 0;
+}
+
+.exporter-rank b {
+  color: #f5c15c;
+}
+
+.exporter-rank p span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.exporter-rank em {
+  color: #85e2c0;
+  font-style: normal;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .trade-app {
+    padding: 14px;
+  }
+
+  .trade-header,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-stage,
+  .map-stage svg {
+    min-height: 500px;
+  }
+
+  .detail-panel {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+  }
+}

@@ -1,8 +1,8 @@
-import FinanceLandingPage from "./FinanceLandingPage.jsx"
+import TradeMap from "./TradeMap.jsx"
 import './App.css'
 
 function App() {
-  return <FinanceLandingPage />
+  return <TradeMap />
 }
 
 export default App
