@@ -42,10 +42,6 @@ def main() -> None:
         print_glossary()
         sys.exit(0)
 
-    if not args.ticker:
-        print("Error: -t/--ticker is required (use --explain for glossary)", file=sys.stderr)
-        sys.exit(1)
-
     load_taxonomy(args.ifrs)
 
     try:
@@ -95,12 +91,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="SEC Filing Comparator \u2014 fetch and compare 10-K / 10-Q financial data"
     )
-    parser.add_argument("-t", "--ticker", help="Stock ticker (e.g., AAPL)")
+
+    explain_or_fetch = parser.add_mutually_exclusive_group(required=True)
+    explain_or_fetch.add_argument("-t", "--ticker", help="Stock ticker (e.g., AAPL)")
+    explain_or_fetch.add_argument("-e", "--explain", action="store_true", help="Print financial terms glossary and exit")
     parser.add_argument("-f", "--form", choices=["10-K", "10-Q", "20-F"], default="10-Q", help="Filing type (default: 10-Q; 20-F for IFRS annual)")
     parser.add_argument("-n", "--count", type=int, default=1, help="Number of recent filings (default: 1)")
     parser.add_argument("-o", "--output", metavar="FILE", help="Write to file instead of stdout")
     parser.add_argument("--ifrs", action="store_true", help="Use IFRS taxonomy (instead of US-GAAP)")
-    parser.add_argument("-e", "--explain", action="store_true", help="Print financial terms glossary and exit")
     return parser.parse_args()
 
 
